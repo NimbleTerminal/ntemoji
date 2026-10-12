@@ -9,7 +9,7 @@
 
 It features curated categories of TUI-safe, highly compatible emojis, support for custom palettes, search/filter capabilities, preset shortcuts, and built-in overlay positioning with [`bubblezone`](https://github.com/lrstanley/bubblezone) mouse integration.
 
-[Try out the live WASM demo.](https://nimbleterminal.github.io/ntemoji)
+[Try the emoji picker and swatch grid online.](https://nimbleterminal.github.io/ntemoji)
 
 This module was inspired by the [@madicen's `bubble-color-picker` library](https://github.com/madicen/bubble-color-picker).
 
@@ -109,6 +109,7 @@ The `SwatchPicker` is a small UI component representing the selected emoji with 
 ## Keyboard & Mouse Interactions
 
 - **Tab / Shift+Tab**: Cycle focus among the **Presets row**, **Search bar**, **Category selectors**, and the **Emoji grid**.
+- **Search**: Type or paste text while the search field is focused. Left/right edit the cursor; long queries scroll within the field.
 - **Arrows / hjkl**: Navigate selections within the active presets or the emoji grid. Changing focus to category selection and using ←/→ instantly switches category tabs.
 - **Enter**: Confirms the selected emoji and fires an `EmojiChangedMsg`.
 - **Escape**: Cancels selection and fires an `EmojiCanceledMsg`.
@@ -153,7 +154,12 @@ task build-ex-swatch
 ./bin/swatch
 ```
 
-To build and serve the browser demo locally:
+The [online playground](https://nimbleterminal.github.io/ntemoji/) includes both
+examples, keyboard help, source links, a restart control, and Booba terminal
+action buttons that change when a picker opens or closes. Switching examples
+starts a fresh session.
+
+To build and serve it locally:
 
 ```sh
 task serve-wasm-site
@@ -162,17 +168,23 @@ task serve-wasm-site
 
 Native builds use upstream Bubble Tea v2 from `go.mod`. Browser builds opt into
 `wasm.work`, which pins the fork needed for WASM support. The Taskfile and CI
-select this workspace automatically for the WASM build. To build it directly:
+select this workspace automatically for both WASM builds. To build the full site directly:
 
 ```sh
-GOWORK="$PWD/wasm.work" GOOS=js GOARCH=wasm go build -mod=readonly -o web/app.wasm ./examples/swatch
+sh scripts/build-wasm-site.sh
 ```
 
 Applications importing `ntemoji` that target WASM must configure the replacement
 from `wasm.work` in their own module or workspace; Go does not inherit it.
 
 The `booba-assets` tool still uses its upstream `github.com/NimbleMarkets/go-booba`
-module path. Generated browser assets are written to `web/` and ignored by Git.
+module path. The examples use `internal/demorun` to select the native or WASM
+launcher and publish their current controls through Booba terminal actions. The tracked page source lives in `site/`.
+The shared build script compiles both examples, stages the runtime, and copies the page into `web/`.
+Generated browser assets are ignored by Git; edit `site/`, not `web/`.
+
+Run the same validation as GitHub Actions with `task ci`: race tests, vet, native
+example builds, and the complete WASM demo site build.
 
 ## Vibe coded
 

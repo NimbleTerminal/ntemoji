@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Try ntemoji's interactive emoji picker and popup swatches in your browser. Bubble Tea widgets from Nimble Terminal.">
+  <title>ntemoji — Nimble Terminal demos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="./"><span aria-hidden="true">✳</span> nimble terminal <span class="divider">/</span> <strong>ntemoji</strong></a>
+    <nav aria-label="Project links">
+      <a href="https://pkg.go.dev/nimbleterminal.dev/ntemoji">Docs</a>
+      <a href="https://github.com/NimbleTerminal/ntemoji">GitHub ↗</a>
+    </nav>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">THE PLAYGROUND</p>
+      <h1>A little more expression<br>for your terminal<span>.</span></h1>
+      <p>Emoji pickers and popup swatches for Bubble Tea.<br>Try the real Go examples, right here in your browser.</p>
+    </section>
+    <div class="workspace">
+      <aside>
+        <p class="eyebrow">CHOOSE A DEMO</p>
+        <nav class="demo-nav" aria-label="Examples">
+          <a href="?demo=simple" data-demo="simple"><span class="demo-icon" aria-hidden="true">✳</span><span><strong>Emoji picker</strong><small>Search, browse, and select</small></span><span aria-hidden="true">↗</span></a>
+          <a href="?demo=swatch" data-demo="swatch" aria-current="page"><span class="demo-icon" aria-hidden="true">▦</span><span><strong>Swatch grid</strong><small>Four buttons, endless choices</small></span><span aria-hidden="true">↗</span></a>
+        </nav>
+        <div class="instructions">
+          <h2>Make it yours</h2>
+          <p id="description">Click a swatch, or press 1–4, to open its picker. Choose an emoji and see the button update.</p>
+          <dl>
+            <div><dt><kbd>Tab</kbd></dt><dd>Move between sections</dd></div>
+            <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Browse emojis</dd></div>
+            <div><dt><kbd>Enter</kbd></dt><dd>Select an emoji</dd></div>
+            <div><dt><kbd>Esc</kbd></dt><dd>Cancel the picker</dd></div>
+          </dl>
+          <p class="hint">Click inside the terminal to use the keyboard. <kbd>Ctrl C</kbd> exits the demo.</p>
+        </div>
+        <a id="source" class="source-link" href="https://github.com/NimbleTerminal/ntemoji/tree/main/examples/swatch">View example source ↗</a>
+      </aside>
+      <section class="demo-panel" aria-labelledby="demo-title">
+        <div class="toolbar">
+          <div><span class="status-dot" aria-hidden="true"></span><h2 id="demo-title">Swatch grid</h2></div>
+          <button id="restart" type="button">↻ Restart demo</button>
+        </div>
+        <div id="controls" aria-label="Demo controls"></div>
+        <div class="terminal-scroll"><div id="terminal" aria-label="Interactive emoji demo"></div></div>
+        <div class="statusbar"><p id="status" role="status">Loading demo…</p><span>Go + Bubble Tea</span></div>
+        <noscript><p class="error">Enable JavaScript to run the interactive demos.</p></noscript>
+      </section>
+    </div>
+    <section class="install">
+      <div><h2>Bring it to your TUI.</h2><p>Custom palettes, themes, search, and mouse support.</p></div>
+      <code>go get nimbleterminal.dev/ntemoji</code>
+    </section>
+  </main>
+  <footer><a href="https://nimbleterminal.dev">Made by Nimble Terminal</a><span>Powered by <a href="https://github.com/NimbleMarkets/go-booba">go-booba</a> · Runs locally in your browser</span></footer>
+  <script src="wasm_exec.js"></script>
+  <script type="module" src="demo.js"></script>
+</body>
+</html>

@@ -7,10 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"nimbleterminal.dev/ntemoji"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
+	"nimbleterminal.dev/ntemoji"
+	"nimbleterminal.dev/ntemoji/internal/demorun"
 )
 
 const (
@@ -19,8 +20,7 @@ const (
 )
 
 func main() {
-	p := tea.NewProgram(newApp())
-	final, err := p.Run()
+	final, err := demorun.Run(newApp())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -52,7 +52,7 @@ func newApp() *appModel {
 			ntemoji.NewSwatchPicker("💡", "Idea"),
 		},
 	}
-	
+
 	// Configure preset options for the modal pickers
 	for _, s := range a.swatches {
 		s.SetZoneManager(a.zm)
@@ -79,13 +79,13 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.height <= 0 {
 			a.height = 20
 		}
-		
-	case tea.KeyMsg:
-		if msg.String() == "q" || msg.String() == "ctrl+c" {
+
+	case tea.KeyPressMsg:
+		if msg.String() == "ctrl+c" {
 			a.quitting = true
 			return a, tea.Quit
 		}
-		
+
 		// If no picker is open, pressing keys 1-4 opens the corresponding swatch picker
 		anyOpen := false
 		for _, s := range a.swatches {
@@ -94,8 +94,12 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 		}
-		
+
 		if !anyOpen {
+			if msg.String() == "q" {
+				a.quitting = true
+				return a, tea.Quit
+			}
 			var cmd tea.Cmd
 			openPress := tea.MouseClickMsg{Button: tea.MouseLeft}
 			switch msg.String() {
@@ -124,7 +128,7 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			break
 		}
 	}
-	
+
 	if openIdx >= 0 {
 		a.swatches[openIdx], cmd = a.swatches[openIdx].Update(msg)
 		return a, cmd
@@ -171,7 +175,7 @@ func (a *appModel) View() tea.View {
 	if a.height <= 0 {
 		a.height = 20
 	}
-	
+
 	mainView := a.buildMainView()
 	for _, s := range a.swatches {
 		mainView = s.ViewWithOverlay(mainView, a.width, a.height)
@@ -201,14 +205,23 @@ func (a *appModel) buildMainView() string {
 	label2 := fmt.Sprintf("%-*s", labelLen, "Emoji 3:")
 	label3 := fmt.Sprintf("%-*s", labelLen, "Emoji 4:")
 
-	row1 := a.zm.Mark(swatchZoneID(0), label0+a.swatches[0].SwatchView()) + 
-		strings.Repeat(" ", gap) + 
+	row1 := a.zm.Mark(swatchZoneID(0), label0+a.swatches[0].SwatchView()) +
+		strings.Repeat(" ", gap) +
 		a.zm.Mark(swatchZoneID(1), label1+a.swatches[1].SwatchView())
-		
-	row2 := a.zm.Mark(swatchZoneID(2), label2+a.swatches[2].SwatchView()) + 
-		strings.Repeat(" ", gap) + 
+
+	row2 := a.zm.Mark(swatchZoneID(2), label2+a.swatches[2].SwatchView()) +
+		strings.Repeat(" ", gap) +
 		a.zm.Mark(swatchZoneID(3), label3+a.swatches[3].SwatchView())
 
 	lines := []string{title, "", row1, row2, "", help}
 	return strings.Join(lines, "\n")
+}
+
+func (a *appModel) DemoActions() demorun.Description {
+	for _, swatch := range a.swatches {
+		if swatch.Open() {
+			return demorun.PickerActions()
+		}
+	}
+	return demorun.SwatchActions()
 }

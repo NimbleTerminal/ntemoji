@@ -5,20 +5,21 @@ import (
 	"fmt"
 	"os"
 
-	"nimbleterminal.dev/ntemoji"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
+	"nimbleterminal.dev/ntemoji"
+	"nimbleterminal.dev/ntemoji/internal/demorun"
 )
 
 func main() {
 	zm := zone.New()
 	// Define a custom forest/matrix theme with green accents
 	forestTheme := ntemoji.DefaultTheme
-	forestTheme.FrameBorderColor = lipgloss.Color("42")        // Green accent border
-	forestTheme.BorderFocusedColor = lipgloss.Color("84")      // Bright green focus
-	forestTheme.BorderUnfocusedColor = lipgloss.Color("22")    // Dark green unfocus
-	forestTheme.ActiveTabStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).Background(lipgloss.Color("28")) // Green active tab
+	forestTheme.FrameBorderColor = lipgloss.Color("42")                                                                               // Green accent border
+	forestTheme.BorderFocusedColor = lipgloss.Color("84")                                                                             // Bright green focus
+	forestTheme.BorderUnfocusedColor = lipgloss.Color("22")                                                                           // Dark green unfocus
+	forestTheme.ActiveTabStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("15")).Background(lipgloss.Color("28"))     // Green active tab
 	forestTheme.SelectedCellStyle = lipgloss.NewStyle().Background(lipgloss.Color("28")).Foreground(lipgloss.Color("255")).Bold(true) // Green active cell
 	forestTheme.SearchPromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
 	forestTheme.SearchCursorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("42"))
@@ -32,9 +33,7 @@ func main() {
 	picker.SetZoneManager(zm)
 
 	app := &simpleModel{picker: picker, zm: zm}
-	p := tea.NewProgram(app)
-	
-	model, err := p.Run()
+	model, err := demorun.Run(app)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -59,9 +58,9 @@ func (m *simpleModel) Init() tea.Cmd {
 
 func (m *simpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "q", "ctrl+c":
+		case "ctrl+c":
 			return m, tea.Quit
 		}
 	case ntemoji.EmojiChangedMsg:
@@ -70,7 +69,7 @@ func (m *simpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ntemoji.EmojiCanceledMsg:
 		return m, tea.Quit
 	}
-	
+
 	updated, cmd := m.picker.Update(msg)
 	m.picker = updated.(ntemoji.Model)
 	return m, cmd
@@ -79,16 +78,20 @@ func (m *simpleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *simpleModel) View() tea.View {
 	// Center the picker view in terminal window
 	pickerView := m.picker.View().Content
-	
+
 	// Lipgloss helper to align/center
 	centered := lipgloss.Place(
 		m.picker.Width, m.picker.Height,
 		lipgloss.Center, lipgloss.Center,
 		pickerView,
 	)
-	
+
 	v := tea.NewView(m.zm.Scan(centered))
 	v.AltScreen = true
 	v.MouseMode = tea.MouseModeAllMotion
 	return v
+}
+
+func (m *simpleModel) DemoActions() demorun.Description {
+	return demorun.PickerActions()
 }

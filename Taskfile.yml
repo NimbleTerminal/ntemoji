@@ -36,6 +36,14 @@ tasks:
     cmds:
       - go test ./...
 
+  ci:
+    desc: 'Run race tests, vet, native builds, and the WASM demo build'
+    cmds:
+      - go test -race ./...
+      - go vet ./...
+      - go build ./examples/...
+      - sh scripts/build-wasm-site.sh
+
   build:
     desc: 'Build all the things'
     deps:
@@ -97,10 +105,11 @@ tasks:
     desc: 'Build the WASM demo site into web/'
     deps: [go-tidy]
     cmds:
-      - GOWORK="$PWD/wasm.work" GOARCH=wasm GOOS=js go build -mod=readonly -o web/app.wasm ./examples/swatch/
-      - go tool booba-assets web/
+      - sh scripts/build-wasm-site.sh
     generates:
-      - web/app.wasm
+      - web/demos/simple.wasm
+      - web/demos/swatch.wasm
+      - web/index.html
 
   serve-wasm-site:
     desc: 'Serve web/ at http://localhost:8000/ntemoji/ (matches GH Pages prefix)'
@@ -117,5 +126,5 @@ tasks:
   clean-wasm-site:
     desc: 'Remove WASM demo site artifacts'
     cmds:
-      - rm -rf web/booba web/ghostty-web web/_assets
-      - rm -f web/wasm_exec.js web/app.wasm
+      - rm -rf web/booba web/ghostty-web web/_assets web/demos
+      - rm -f web/wasm_exec.js web/app.wasm web/index.html web/style.css web/demo.js

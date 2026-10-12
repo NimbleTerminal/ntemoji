@@ -24,10 +24,8 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - name: Build WASM binary
-        run: GOWORK="$PWD/wasm.work" GOARCH=wasm GOOS=js go build -mod=readonly -o web/app.wasm ./examples/swatch/
-      - name: Set up web assets
-        run: go tool booba-assets web/
+      - name: Build demo site
+        run: sh scripts/build-wasm-site.sh
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
