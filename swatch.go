@@ -170,7 +170,10 @@ func (s *SwatchPicker) Update(msg tea.Msg) (*SwatchPicker, tea.Cmd) {
 		}
 		return s, nil
 
-	case tea.KeyMsg:
+	case tea.KeyReleaseMsg:
+		return s, nil
+
+	case tea.KeyPressMsg:
 		if s.open {
 			updated, cmd := s.picker.Update(m)
 			s.picker = updated.(Model)

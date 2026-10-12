@@ -48,9 +48,9 @@ type Model struct {
 
 	zm *zone.Manager
 
-	Theme        Theme
-	frameStyle   lipgloss.Style
-	customFrame  bool
+	Theme       Theme
+	frameStyle  lipgloss.Style
+	customFrame bool
 }
 
 // New constructs a new EmojiPicker Model with the given options.
@@ -182,23 +182,7 @@ func (m Model) filteredEmojis() []string {
 
 // ViewSize returns the size of the picker (width, height in cells).
 func (m Model) ViewSize() (width, height int) {
-	cols := m.GridCols
-	if cols <= 0 {
-		cols = 8
-	}
-	rows := m.GridRows
-	if rows <= 0 {
-		rows = 5
-	}
-	extra := 0
-	if len(m.Presets) > 0 {
-		extra += 2
-	}
-	if m.ShowSearch {
-		extra += 2
-	}
-	innerW, innerH := cols*4, 7+rows+extra
-	return innerW + 4, innerH + 2
+	return lipgloss.Size(m.View().Content)
 }
 
 func (m Model) cycleFocus(next bool) Focus {
@@ -277,9 +261,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		// Preserve the selected emoji when the terminal changes the column count.
+		cols := m.GridCols
+		if cols <= 0 {
+			cols = 8
+		}
+		selectedIndex := m.GridCursorY*cols + m.GridCursorX
 		m.Width = msg.Width
 		m.Height = msg.Height
-		contentW := max(msg.Width-4, 16)
+		contentW := max(msg.Width-8, 16)
 		m.GridCols = contentW / 4
 		if m.GridCols < 4 {
 			m.GridCols = 4
@@ -288,23 +278,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.GridCols = 12
 		}
 
-		availH := msg.Height - 8
+		// Header, categories, grid border, help and frame take 12 lines.
+		// Each optional section takes three; grid rows use a two-line pitch.
+		availH := msg.Height - 12
 		if len(m.Presets) > 0 {
-			availH -= 2
+			availH -= 3
 		}
 		if m.ShowSearch {
-			availH -= 2
+			availH -= 3
 		}
-		if availH > 8 {
-			m.GridRows = 8
-		} else if availH > 3 {
-			m.GridRows = availH
-		} else {
-			m.GridRows = 3
-		}
+		m.GridRows = max(1, min(8, (availH+1)/2))
+
+		m.GridCursorX = selectedIndex % m.GridCols
+		m.GridCursorY = selectedIndex / m.GridCols
+		m.clampCursor(len(m.filteredEmojis()))
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyReleaseMsg:
+		return m, nil
+
+	case tea.KeyPressMsg:
+		if m.Focus == FocusSearch && m.ShowSearch {
+			switch msg.String() {
+			case "tab", "shift+tab", "enter", "esc":
+				// Picker-level focus, selection and cancellation shortcuts.
+			default:
+				return m.updateSearch(msg)
+			}
+		}
 		switch msg.String() {
 		case "enter":
 			var chosen string
@@ -458,14 +459,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if z := m.zm.Get(ZoneGrid); z != nil && z.InBounds(msg) {
 			relX, relY := z.Pos(msg)
 			cellX := relX / 4
-			cellY := relY
+			// Blank separator lines do not select an emoji.
+			if relY%2 != 0 {
+				return m, nil
+			}
+			rows := m.GridRows
+			if rows <= 0 {
+				rows = 5
+			}
+			scrollOffset := max(0, m.GridCursorY-rows+1)
+			cellY := relY/2 + scrollOffset
 			emojis := m.filteredEmojis()
 			cols := m.GridCols
 			if cols <= 0 {
 				cols = 8
 			}
 
-			if cellX >= 0 && cellX < cols {
+			if cellX >= 0 && cellX < cols && cellY*cols+cellX < len(emojis) {
 				m.GridCursorX = cellX
 				m.GridCursorY = cellY
 				m.Focus = FocusGrid
@@ -487,17 +497,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.Focus == FocusSearch && m.ShowSearch {
-		var newSearch TextInput
-		newSearch, cmd = m.SearchInput.Update(msg)
-		if newSearch.Value() != m.SearchInput.Value() {
-			m.GridCursorX = 0
-			m.GridCursorY = 0
-		}
-		m.SearchInput = newSearch
-		return m, cmd
+		return m.updateSearch(msg)
 	}
-
 	return m, nil
+}
+
+func (m Model) updateSearch(msg tea.Msg) (tea.Model, tea.Cmd) {
+	previous := m.SearchInput.Value()
+	input, cmd := m.SearchInput.Update(msg)
+	if input.Value() != previous {
+		m.GridCursorX, m.GridCursorY = 0, 0
+	}
+	m.SearchInput = input
+	return m, cmd
 }
 
 // View renders the emoji picker UI.
@@ -577,7 +589,9 @@ func (m Model) View() tea.View {
 		if m.Focus == FocusSearch {
 			sbBorder = focusBorderFocused
 		}
-		sbView := m.SearchInput.View()
+		search := m.SearchInput
+		search.SetWidth(innerW)
+		sbView := search.View()
 		if m.zm != nil {
 			sbView = m.zm.Mark(ZoneSearch, sbView)
 		}
@@ -624,7 +638,7 @@ func (m Model) View() tea.View {
 		for c := 0; c < cols; c++ {
 			idx := rowIdx*cols + c
 			if idx < len(emojis) {
-				emojiCell := fmt.Sprintf(" %s ", emojis[idx])
+				emojiCell := lipgloss.NewStyle().Width(4).MaxWidth(4).Align(lipgloss.Center).Render(emojis[idx])
 				isSelected := c == m.GridCursorX && rowIdx == m.GridCursorY
 				if isSelected && m.Focus == FocusGrid {
 					line += m.Theme.SelectedCellStyle.Render(emojiCell)
@@ -639,6 +653,9 @@ func (m Model) View() tea.View {
 			}
 		}
 		gridStr += line + "\n"
+		if r < rows-1 {
+			gridStr += strings.Repeat(" ", innerW) + "\n"
+		}
 	}
 	gridBlock := strings.TrimSuffix(gridStr, "\n")
 	if m.zm != nil {

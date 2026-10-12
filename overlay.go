@@ -3,7 +3,7 @@ package ntemoji
 import (
 	"strings"
 
-	"github.com/mattn/go-runewidth"
+	"github.com/charmbracelet/x/ansi"
 )
 
 type overlayCell struct {
@@ -14,59 +14,38 @@ type overlayCell struct {
 
 func parseOverlayLine(line string) []overlayCell {
 	var cells []overlayCell
-	runes := []rune(line)
-	n := len(runes)
-
 	activeStyle := ""
-
-	for i := 0; i < n; i++ {
-		r := runes[i]
-		if r == '\x1b' {
-			styleSeq := string(r)
-			i++
-			if i < n && runes[i] == '[' {
-				styleSeq += "["
-				i++
-				for i < n {
-					styleSeq += string(runes[i])
-					if runes[i] >= 0x40 && runes[i] <= 0x7E {
+	var state byte
+	for len(line) > 0 {
+		cluster, width, n, next := ansi.DecodeSequence(line, state, nil)
+		if width > 0 {
+			// DecodeSequence fast-paths ASCII; a digit may start a keycap
+			// grapheme, so segment all printable text before measuring it.
+			cluster, width = ansi.FirstGraphemeCluster(line, ansi.GraphemeWidth)
+			n = len(cluster)
+		}
+		line, state = line[n:], next
+		if width == 0 {
+			if strings.HasPrefix(cluster, "\x1b") || strings.HasPrefix(cluster, "\x9b") || strings.HasPrefix(cluster, "\x9d") {
+				if cluster == "\x1b[0m" || cluster == "\x1b[m" {
+					activeStyle = ""
+				} else {
+					activeStyle += cluster
+				}
+			} else {
+				// Attach zero-width text to the leading cell, never its placeholder.
+				for i := len(cells) - 1; i >= 0; i-- {
+					if cells[i].Width > 0 {
+						cells[i].Char += cluster
 						break
 					}
-					i++
 				}
-			} else {
-				if i < n {
-					styleSeq += string(runes[i])
-				}
-			}
-			if styleSeq == "\x1b[0m" || styleSeq == "\x1b[m" {
-				activeStyle = ""
-			} else {
-				activeStyle += styleSeq
 			}
 			continue
 		}
-
-		w := runewidth.RuneWidth(r)
-		if w <= 0 {
-			if len(cells) > 0 {
-				cells[len(cells)-1].Char += string(r)
-			}
-			continue
-		}
-
-		cells = append(cells, overlayCell{
-			Char:  string(r),
-			Width: w,
-			Style: activeStyle,
-		})
-
-		if w == 2 {
-			cells = append(cells, overlayCell{
-				Char:  "",
-				Width: 0,
-				Style: activeStyle,
-			})
+		cells = append(cells, overlayCell{Char: cluster, Width: width, Style: activeStyle})
+		for i := 1; i < width; i++ {
+			cells = append(cells, overlayCell{Style: activeStyle})
 		}
 	}
 
@@ -212,4 +191,3 @@ func (p Placement) ClampedOrigin(modalW, modalH, bgW, bgH int) (top, left int) {
 func CellInModal(x, y, top, left, width, height int) bool {
 	return x >= left && x < left+width && y >= top && y < top+height
 }
-

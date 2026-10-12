@@ -1,14 +1,18 @@
 package ntemoji
 
 import (
+	"slices"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
-// TextInput is a lightweight, zero-dependency text input component for Go and Bubble Tea.
-// It avoids importing external clipboard packages to keep compilation lightweight and CG0-free.
+// TextInput is a single-line input with terminal-cell width limits.
+// Paste events come from Bubble Tea; no system clipboard dependency is needed.
 type TextInput struct {
 	Placeholder string
 	Prompt      string
@@ -24,17 +28,12 @@ type TextInput struct {
 	focused bool
 }
 
-// NewTextInput constructs a TextInput model.
-func NewTextInput() TextInput {
-	return TextInput{
-		width: 15,
-	}
-}
+// NewTextInput constructs an input with a 15-cell width.
+func NewTextInput() TextInput { return TextInput{width: 15} }
 
-// SetWidth sets the character width constraint for the text input.
-func (t *TextInput) SetWidth(w int) {
-	t.width = w
-}
+// SetWidth limits the whole rendered input, including prompt and cursor, in
+// terminal cells. Zero and negative widths hide the input without losing text.
+func (t *TextInput) SetWidth(w int) { t.width = max(0, w) }
 
 // Focus focuses the input.
 func (t *TextInput) Focus() tea.Cmd {
@@ -42,98 +41,169 @@ func (t *TextInput) Focus() tea.Cmd {
 	return nil
 }
 
-// Blur blurs/unfocuses the input.
-func (t *TextInput) Blur() {
-	t.focused = false
-}
+// Blur removes input focus.
+func (t *TextInput) Blur() { t.focused = false }
 
-// Focused returns true if the input is currently focused.
-func (t *TextInput) Focused() bool {
-	return t.focused
-}
+// Focused reports whether the input accepts keyboard and paste events.
+func (t *TextInput) Focused() bool { return t.focused }
 
-// Value returns the current text value of the input.
-func (t *TextInput) Value() string {
-	return string(t.value)
-}
+// Value returns the complete text, including text outside the visible viewport.
+func (t *TextInput) Value() string { return string(t.value) }
 
-// SetValue sets the text value of the input.
+// SetValue replaces the input, normalizes it to one line, and moves to its end.
 func (t *TextInput) SetValue(s string) {
-	t.value = []rune(s)
+	t.value = []rune(singleLine(s))
 	t.cursor = len(t.value)
 }
 
-// Update handles keyboard messages to mutate the text input value and cursor.
+func singleLine(s string) string {
+	s = strings.ReplaceAll(ansi.Strip(s), "\r\n", "\n")
+	return strings.Map(func(r rune) rune {
+		switch r {
+		case '\n', '\r', '\t', '\u2028', '\u2029':
+			return ' '
+		}
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
+// boundaries returns rune offsets so editing never splits a grapheme cluster.
+func (t TextInput) boundaries() []int {
+	result := []int{0}
+	text, offset := string(t.value), 0
+	for len(text) > 0 {
+		cluster, _ := ansi.FirstGraphemeCluster(text, ansi.GraphemeWidth)
+		offset += utf8.RuneCountInString(cluster)
+		result = append(result, offset)
+		text = text[len(cluster):]
+	}
+	return result
+}
+
+func (t TextInput) previous() int {
+	previous := 0
+	for _, boundary := range t.boundaries() {
+		if boundary >= t.cursor {
+			break
+		}
+		previous = boundary
+	}
+	return previous
+}
+
+func (t TextInput) next() int {
+	for _, boundary := range t.boundaries() {
+		if boundary > t.cursor {
+			return boundary
+		}
+	}
+	return len(t.value)
+}
+
+func (t *TextInput) insert(s string) {
+	runes := []rune(singleLine(s))
+	value := make([]rune, 0, len(t.value)+len(runes))
+	value = append(value, t.value[:t.cursor]...)
+	value = append(value, runes...)
+	value = append(value, t.value[t.cursor:]...)
+	t.value = value
+	t.cursor += len(runes)
+	// Insertion can join a combining sequence with the following text.
+	for _, boundary := range t.boundaries() {
+		if boundary >= t.cursor {
+			t.cursor = boundary
+			break
+		}
+	}
+}
+
+// Update handles key presses and bracketed-paste events while focused.
 func (t TextInput) Update(msg tea.Msg) (TextInput, tea.Cmd) {
 	if !t.focused {
 		return t, nil
 	}
-
 	switch msg := msg.(type) {
+	case tea.PasteMsg:
+		t.insert(msg.Content)
 	case tea.KeyPressMsg:
+		// Preserve value semantics when models are copied by their parents.
+		t.value = slices.Clone(t.value)
 		switch msg.String() {
 		case "backspace":
-			if t.cursor > 0 {
-				t.value = append(t.value[:t.cursor-1], t.value[t.cursor:]...)
-				t.cursor--
-			}
+			previous := t.previous()
+			t.value = append(t.value[:previous], t.value[t.cursor:]...)
+			t.cursor = previous
 		case "delete":
-			if t.cursor < len(t.value) {
-				t.value = append(t.value[:t.cursor], t.value[t.cursor+1:]...)
-			}
+			t.value = append(t.value[:t.cursor], t.value[t.next():]...)
 		case "left":
-			if t.cursor > 0 {
-				t.cursor--
-			}
+			t.cursor = t.previous()
 		case "right":
-			if t.cursor < len(t.value) {
-				t.cursor++
-			}
+			t.cursor = t.next()
 		case "home", "ctrl+a":
 			t.cursor = 0
 		case "end", "ctrl+e":
 			t.cursor = len(t.value)
 		default:
-			// Handle printable character insertions
-			text := msg.Key().Text
-			if text == "" && msg.Key().Code == ' ' {
+			text := msg.Text
+			if text == "" && msg.Code == ' ' && msg.Mod == 0 {
 				text = " "
 			}
 			if text != "" {
-				runes := []rune(text)
-				t.value = append(t.value[:t.cursor], append(runes, t.value[t.cursor:]...)...)
-				t.cursor += len(runes)
+				t.insert(text)
 			}
 		}
 	}
 	return t, nil
 }
 
-// View renders the text input string.
+// View keeps the cursor visible by scrolling over whole grapheme clusters.
 func (t TextInput) View() string {
-	prompt := t.PromptStyle.Render(t.Prompt)
-
-	var textStr string
-	if len(t.value) == 0 && t.Placeholder != "" {
-		if t.focused {
-			textStr = t.CursorStyle.Render(" ") + t.PlaceholderStyle.Render(t.Placeholder)
-		} else {
-			textStr = t.PlaceholderStyle.Render(t.Placeholder)
-		}
-	} else {
-		var s strings.Builder
-		for i := 0; i < len(t.value); i++ {
-			if i == t.cursor && t.focused {
-				s.WriteString(t.CursorStyle.Render(string(t.value[i])))
-			} else {
-				s.WriteRune(t.value[i])
-			}
-		}
-		if t.cursor == len(t.value) && t.focused {
-			s.WriteString(t.CursorStyle.Render(" "))
-		}
-		textStr = t.TextStyle.Render(s.String())
+	if t.width <= 0 {
+		return ""
 	}
-
-	return prompt + textStr
+	prompt := ansi.Truncate(t.PromptStyle.Render(t.Prompt), t.width, "")
+	available := t.width - lipgloss.Width(prompt)
+	if available <= 0 {
+		return prompt
+	}
+	if len(t.value) == 0 {
+		placeholder := t.PlaceholderStyle.Render(singleLine(t.Placeholder))
+		if t.focused {
+			placeholder = t.CursorStyle.Render(" ") + placeholder
+		}
+		return prompt + ansi.Truncate(placeholder, available, "")
+	}
+	bounds := t.boundaries()
+	clusters := make([]string, 0, len(bounds))
+	cursor := 0
+	for i := 0; i < len(bounds)-1; i++ {
+		if bounds[i] < t.cursor {
+			cursor = i + 1
+		}
+		clusters = append(clusters, string(t.value[bounds[i]:bounds[i+1]]))
+	}
+	clusters = append(clusters, " ") // Cursor at the end of the value.
+	start := 0
+	if t.focused {
+		if lipgloss.Width(clusters[cursor]) > available {
+			clusters[cursor] = " " // A wide grapheme cannot fit in a one-cell view.
+		}
+		used := lipgloss.Width(strings.Join(clusters[:cursor+1], ""))
+		for used > available && start < cursor {
+			used -= lipgloss.Width(clusters[start])
+			start++
+		}
+	}
+	var rendered strings.Builder
+	for i := start; i < len(clusters); i++ {
+		if i == cursor && t.focused {
+			rendered.WriteString(t.CursorStyle.Render(clusters[i]))
+		} else if i < len(clusters)-1 {
+			rendered.WriteString(t.TextStyle.Render(clusters[i]))
+		}
+	}
+	return prompt + ansi.Truncate(rendered.String(), available, "")
 }

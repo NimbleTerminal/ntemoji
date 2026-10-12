@@ -183,7 +183,7 @@ func TestPickerNewCategoriesAndConstants(t *testing.T) {
 	}
 
 	picker := New(WithShowSearch(true))
-	
+
 	// Test that we can search for cat and find both emojis
 	picker.Focus = FocusSearch
 	for _, char := range "cat" {
@@ -211,3 +211,20 @@ func TestPickerNewCategoriesAndConstants(t *testing.T) {
 	}
 }
 
+func TestPickerResizePreservesSelection(t *testing.T) {
+	picker := New(WithInitialEmoji("🚀"))
+	for _, width := range []int{100, 32, 80} {
+		updated, _ := picker.Update(tea.WindowSizeMsg{Width: width, Height: 24})
+		picker = updated.(Model)
+		if got := picker.SelectedEmoji(); got != "🚀" {
+			t.Fatalf("width %d: selected %q, want rocket", width, got)
+		}
+		_, cmd := picker.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+		if cmd == nil {
+			t.Fatalf("width %d: Enter did not select an emoji", width)
+		}
+		if msg, ok := cmd().(EmojiChangedMsg); !ok || msg.Emoji != "🚀" {
+			t.Fatalf("width %d: unexpected selection %#v", width, msg)
+		}
+	}
+}
