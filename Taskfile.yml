@@ -2,6 +2,9 @@
 
 version: '3'
 
+env:
+  GOWORK: 'off'
+
 tasks:
   default:
     desc: 'Default task runs the "test" and "build" tasks'
@@ -25,6 +28,8 @@ tasks:
     run: once
     cmds:
       - go get -u ./...
+      - go get -u tool
+      - go mod tidy
 
   test:
     desc: 'Run all Go tests'
@@ -92,7 +97,7 @@ tasks:
     desc: 'Build the WASM demo site into web/'
     deps: [go-tidy]
     cmds:
-      - GOARCH=wasm GOOS=js go build -o web/app.wasm ./examples/swatch/
+      - GOWORK="$PWD/wasm.work" GOARCH=wasm GOOS=js go build -mod=readonly -o web/app.wasm ./examples/swatch/
       - go tool booba-assets web/
     generates:
       - web/app.wasm

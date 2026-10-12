@@ -9,3 +9,6 @@ bin/
 *.test
 *.out
 *.exe
+
+# Generated WASM demo site
+web/

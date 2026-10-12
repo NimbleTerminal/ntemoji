@@ -1,0 +1,7 @@
+// Opt-in workspace for browser builds; native builds use upstream Bubble Tea.
+// Keep the fork aligned with the version used by go-booba.
+go 1.26.8
+
+use .
+
+replace charm.land/bubbletea/v2 => github.com/neomantra/bubbletea/v2 v2.0.0-20261009201241-c397c32a5074
