@@ -52,13 +52,14 @@ tasks:
       - task: fmt-check
       - go test -race ./...
       - go vet ./...
-      - go build ./examples/...
+      - go build ./examples/... ./cmd/...
       - sh scripts/build-wasm-site.sh
 
   build:
     desc: 'Build all the things'
     deps:
       - build-examples
+      - build-cli
 
   clean:
     desc: 'Clean built examples'
@@ -99,6 +100,13 @@ tasks:
       - go.mod
     generates:
       - bin/simple
+
+  build-cli:
+    desc: 'Build Demoji and Remoji CLI tools'
+    cmds:
+      - mkdir -p bin
+      - go build -o bin/demoji ./cmd/demoji
+      - go build -o bin/remoji ./cmd/remoji
 
   build-wasm-site:
     desc: 'Build the WASM demo site into web/'

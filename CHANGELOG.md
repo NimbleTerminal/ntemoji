@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Add streaming Demoji/Remoji CLI tools with pflag options for language selection and custom delimiters.
+
  * Allow empty Remoji delimiters for greedy, longest-name trie matching with Unicode word boundaries, while retaining colon-delimited defaults.
 
  * Add streaming `Demoji`/`Remoji` and String/Bytes helpers, configurable delimiters and locale, plain descriptive output by default, and canonical emoji sequence recognition from pinned Unicode Emoji 17.0 data.

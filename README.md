@@ -428,3 +428,35 @@ be converted, delimiters are not escaped, some names are ambiguous, and CLDR nam
 can change with data releases. Plain descriptive output is intended for readable
 text; use explicit delimiters when reverse conversion is desired. Actual spoken
 punctuation depends on the screen reader and its settings.
+
+## Demoji and Remoji command-line tools
+
+Install the streaming CLI tools with Go:
+
+```sh
+go install nimbleterminal.dev/ntemoji/cmd/demoji@latest
+go install nimbleterminal.dev/ntemoji/cmd/remoji@latest
+# From this checkout:
+task build-cli
+```
+
+```sh
+printf 'Go 🚀\n' | bin/demoji
+# Go rocket
+printf '🚀\n' | bin/demoji --locale es --open '[' --close ']'
+# [cohete]
+printf '[cohete]\n' | bin/remoji --locale es --open '[' --close ']'
+# 🚀
+bin/demoji --locale fr input.txt > output.txt
+bin/remoji --list-locales
+```
+
+Both commands read stdin when no file (or `-`) is supplied, and write only converted
+text to stdout. Diagnostics go to stderr. Options can precede or follow the filename. Use `--` before a filename that
+starts with a dash.
+`--locale` defaults to English. `--open`/`--close` default to empty for Demoji and
+colons for Remoji. Use `bin/remoji --open "" --close ""` for greedy plain-name
+conversion. `--help` lists options. `--version` prints the version.
+Exit codes are 0 for success/help, 2 for invalid usage, and 1 for I/O/conversion
+errors. Streams may contain partial output on error. Neither tool adds a newline.
+Run without installing via `go run ./cmd/demoji` or `go run ./cmd/remoji`.
