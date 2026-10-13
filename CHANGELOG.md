@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Publish `demoji` and `remoji` as a Homebrew cask, `nimbleterminal/tap/ntemoji`, with release archives for macOS, Linux, and Windows, and add `--version` to both tools.
+
  * Allow empty Remoji delimiters for greedy, longest-name trie matching with Unicode word boundaries, while retaining colon-delimited defaults.
 
  * Add streaming Demoji/Remoji CLI tools and dedicated browser conversion pages with language selection, custom delimiters, localized examples, and copyable multiline output, backed by the Go library in a WASM worker.

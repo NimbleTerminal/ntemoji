@@ -1,0 +1,116 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# ntemoji .goreleaser.yaml
+# Two pure-Go binaries (CGO_ENABLED=0), demoji and remoji, for macOS, Linux,
+# and Windows: one archive per platform and a Homebrew cask, ntemoji, in
+# NimbleTerminal/homebrew-tap that installs both. Modeled on gloss.
+# Try it without publishing: task release
+
+version: 2
+
+project_name: ntemoji
+
+env:
+  - GOWORK=off
+
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
+builds:
+  - id: demoji
+    main: ./cmd/demoji
+    binary: demoji
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+      - -mod=readonly
+    ldflags:
+      - -s -w -X nimbleterminal.dev/ntemoji/internal/textcli.version=v{{.Version}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+  - id: remoji
+    main: ./cmd/remoji
+    binary: remoji
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+      - -mod=readonly
+    ldflags:
+      - -s -w -X nimbleterminal.dev/ntemoji/internal/textcli.version=v{{.Version}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    ids:
+      - demoji
+      - remoji
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md
+      - LICENSE.txt
+      - third_party/unicode/*
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  github:
+    owner: NimbleTerminal
+    name: ntemoji
+  prerelease: auto
+
+# A cask installs the binaries as they were built, so macOS must know who
+# built them: without the signing secrets they are left unsigned, and
+# Gatekeeper refuses them.
+notarize:
+  macos:
+    - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
+      ids:
+        - demoji
+        - remoji
+      sign:
+        certificate: "{{.Env.MACOS_SIGN_P12}}"
+        password: "{{.Env.MACOS_SIGN_PASSWORD}}"
+      notarize:
+        issuer_id: "{{.Env.MACOS_NOTARY_ISSUER_ID}}"
+        key_id: "{{.Env.MACOS_NOTARY_KEY_ID}}"
+        key: "{{.Env.MACOS_NOTARY_KEY}}"
+        wait: true
+        timeout: 20m
+
+homebrew_casks:
+  - name: ntemoji
+    ids:
+      - default
+    repository:
+      owner: NimbleTerminal
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: goreleaserbot@nimbleterminal.com
+    homepage: https://nimbleterminal.github.io/ntemoji/
+    description: Convert emoji to descriptive names and back with demoji and remoji
+    license: MIT
+    skip_upload: auto
+    binaries:
+      - demoji
+      - remoji

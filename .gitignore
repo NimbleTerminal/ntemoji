@@ -4,6 +4,9 @@
 # Output binaries
 bin/
 
+# GoReleaser output
+dist/
+
 
 # Go build artifacts
 *.test

@@ -136,3 +136,13 @@ tasks:
     cmds:
       - rm -rf web/booba web/ghostty-web web/_assets web/demos web/third_party
       - rm -f web/wasm_exec.js web/app.wasm web/index.html web/style.css web/demo.js web/converter.js web/convert-worker.js
+
+  release:
+    desc: 'Package a snapshot release into dist with GoReleaser, publishing nothing'
+    cmds:
+      - goreleaser release --snapshot --clean
+
+  release-check:
+    desc: 'Check the GoReleaser configuration'
+    cmds:
+      - goreleaser check

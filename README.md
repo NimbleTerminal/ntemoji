@@ -431,9 +431,10 @@ punctuation depends on the screen reader and its settings.
 
 ## Demoji and Remoji command-line tools
 
-Install the streaming CLI tools with Go:
+Install the streaming CLI tools with Homebrew, or build them with Go:
 
 ```sh
+brew install --cask nimbleterminal/tap/ntemoji   # macOS or Linux: demoji and remoji
 go install nimbleterminal.dev/ntemoji/cmd/demoji@latest
 go install nimbleterminal.dev/ntemoji/cmd/remoji@latest
 # From this checkout:
