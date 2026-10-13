@@ -12,3 +12,6 @@ bin/
 
 # Generated WASM demo site
 web/
+
+# Local CLI state
+.antigravitycli/

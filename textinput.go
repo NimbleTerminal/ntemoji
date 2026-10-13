@@ -12,7 +12,8 @@ import (
 )
 
 // TextInput is a single-line input with terminal-cell width limits.
-// Paste events come from Bubble Tea; no system clipboard dependency is needed.
+// It intentionally avoids bubbles/textinput and its system clipboard dependency:
+// paste arrives through Bubble Tea bracketed-paste events instead.
 type TextInput struct {
 	Placeholder string
 	Prompt      string
@@ -164,7 +165,13 @@ func (t TextInput) View() string {
 	if t.width <= 0 {
 		return ""
 	}
-	prompt := ansi.Truncate(t.PromptStyle.Render(t.Prompt), t.width, "")
+	promptWidth := t.width
+	if t.focused && t.cursor < len(t.value) {
+		_, width := ansi.FirstGraphemeCluster(string(t.value[t.cursor:]), ansi.GraphemeWidth)
+		// Give the cursor grapheme priority over the prompt in narrow inputs.
+		promptWidth = max(0, t.width-width)
+	}
+	prompt := ansi.Truncate(t.PromptStyle.Render(t.Prompt), promptWidth, "")
 	available := t.width - lipgloss.Width(prompt)
 	if available <= 0 {
 		return prompt
@@ -189,7 +196,7 @@ func (t TextInput) View() string {
 	start := 0
 	if t.focused {
 		if lipgloss.Width(clusters[cursor]) > available {
-			clusters[cursor] = " " // A wide grapheme cannot fit in a one-cell view.
+			clusters[cursor] = "…" // Indicate clipping when even the full input cannot fit it.
 		}
 		used := lipgloss.Width(strings.Join(clusters[:cursor+1], ""))
 		for used > available && start < cursor {
@@ -197,13 +204,17 @@ func (t TextInput) View() string {
 			start++
 		}
 	}
-	var rendered strings.Builder
-	for i := start; i < len(clusters); i++ {
-		if i == cursor && t.focused {
-			rendered.WriteString(t.CursorStyle.Render(clusters[i]))
-		} else if i < len(clusters)-1 {
-			rendered.WriteString(t.TextStyle.Render(clusters[i]))
+	// Style contiguous runs once, rather than emitting escapes per grapheme.
+	end := len(clusters) - 1
+	var rendered string
+	if t.focused {
+		rendered = t.TextStyle.Render(strings.Join(clusters[start:cursor], "")) +
+			t.CursorStyle.Render(clusters[cursor])
+		if cursor < end {
+			rendered += t.TextStyle.Render(strings.Join(clusters[cursor+1:end], ""))
 		}
+	} else {
+		rendered = t.TextStyle.Render(strings.Join(clusters[:end], ""))
 	}
-	return prompt + ansi.Truncate(rendered.String(), available, "")
+	return prompt + ansi.Truncate(rendered, available, "")
 }

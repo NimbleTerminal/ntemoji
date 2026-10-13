@@ -66,7 +66,6 @@ func New(opts ...Option) Model {
 	ti := NewTextInput()
 	ti.Placeholder = "Search..."
 	ti.Prompt = "🔍 "
-	ti.SetWidth(15)
 
 	ti.PromptStyle = cfg.Theme.SearchPromptStyle
 	ti.TextStyle = cfg.Theme.SearchTextStyle
@@ -636,6 +635,7 @@ func (m Model) View() tea.View {
 		scrollOffset = m.GridCursorY - rows + 1
 	}
 
+	cellStyle := lipgloss.NewStyle().Width(4).MaxWidth(4).Align(lipgloss.Center)
 	gridStr := ""
 	for r := 0; r < rows; r++ {
 		rowIdx := r + scrollOffset
@@ -643,7 +643,7 @@ func (m Model) View() tea.View {
 		for c := 0; c < cols; c++ {
 			idx := rowIdx*cols + c
 			if idx < len(emojis) {
-				emojiCell := lipgloss.NewStyle().Width(4).MaxWidth(4).Align(lipgloss.Center).Render(emojis[idx])
+				emojiCell := cellStyle.Render(emojis[idx])
 				isSelected := c == m.GridCursorX && rowIdx == m.GridCursorY
 				if isSelected && m.Focus == FocusGrid {
 					line += m.Theme.SelectedCellStyle.Render(emojiCell)
@@ -692,18 +692,4 @@ func (m Model) View() tea.View {
 	}
 
 	return tea.NewView(frame.Render(innerContent))
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

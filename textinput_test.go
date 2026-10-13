@@ -144,3 +144,25 @@ func TestSearchPasteFitsPickerAndResetsGrid(t *testing.T) {
 		t.Fatal("swatch did not forward paste")
 	}
 }
+
+func TestNarrowInputKeepsCursorGraphemeVisible(t *testing.T) {
+	input := NewTextInput()
+	input.Prompt = "> "
+	input.SetValue("👩‍💻x")
+	input.Focus()
+	input, _ = input.Update(tea.KeyPressMsg{Code: tea.KeyHome})
+	for _, width := range []int{2, 3, 4, 5} {
+		input.SetWidth(width)
+		view := ansi.Strip(input.View())
+		if !strings.Contains(view, "👩‍💻") || lipgloss.Width(view) > width {
+			t.Fatalf("width %d: %q", width, view)
+		}
+	}
+	input.SetWidth(1)
+	if got := ansi.Strip(input.View()); got != "…" {
+		t.Fatalf("want clipping indicator, got %q", got)
+	}
+	if input.Value() != "👩‍💻x" {
+		t.Fatal("render changed input")
+	}
+}

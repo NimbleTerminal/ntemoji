@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+ * Preserve overlay zone markers and leading zero-width text without replaying them as styles.
+ * Size swatch modals against the available terminal using measured layout, including custom frames.
+ * Keep cursor graphemes visible in narrow searches and render text styles per run.
+
  * Route search editing keys before navigation and ignore key releases.
  * Keep search text within its cell width, support single-line paste, and edit whole graphemes.
  * Measure and overlay combined emoji graphemes consistently with Lip Gloss.
