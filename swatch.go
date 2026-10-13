@@ -29,6 +29,7 @@ type SwatchPicker struct {
 	lastViewWidth     int
 	lastViewHeight    int
 
+	locale     string
 	pickerOpts []Option
 }
 
@@ -48,6 +49,11 @@ func NewSwatchPicker(initialEmoji, label string) *SwatchPicker {
 // SetPickerOptions configures options that are passed to the EmojiPicker model when it opens.
 func (s *SwatchPicker) SetPickerOptions(opts ...Option) {
 	s.pickerOpts = append([]Option(nil), opts...)
+	cfg := Config{}
+	for _, option := range s.pickerOpts {
+		option(&cfg)
+	}
+	s.locale = cfg.Locale
 }
 
 func (s *SwatchPicker) newPickerModel() Model {

@@ -1,4 +1,4 @@
-// Command gencldr generates English metadata from the checked-in CLDR snapshot.
+// Command gencldr generates metadata from the checked-in CLDR snapshot.
 package main
 
 import (
@@ -33,6 +33,10 @@ type entry struct {
 }
 
 func parse(data []byte, entries map[string]entry) error {
+	return parseLocale(data, entries, "en")
+}
+
+func parseLocale(data []byte, entries map[string]entry, locale string) error {
 	var document struct {
 		Identity struct {
 			Language struct {
@@ -44,8 +48,8 @@ func parse(data []byte, entries map[string]entry) error {
 	if err := xml.Unmarshal(data, &document); err != nil {
 		return err
 	}
-	if document.Identity.Language.Type != "en" || len(document.Annotations) == 0 {
-		return fmt.Errorf("expected English CLDR annotations")
+	if document.Identity.Language.Type != locale || len(document.Annotations) == 0 {
+		return fmt.Errorf("expected %s CLDR annotations", locale)
 	}
 	for _, a := range document.Annotations {
 		key := strings.ReplaceAll(a.Code, "\ufe0f", "")
@@ -115,12 +119,28 @@ func generate(sourceDir string) ([]byte, error) {
 }
 
 func main() {
-	input := flag.String("input", "internal/cldr", "directory containing pinned English XML files")
-	output := flag.String("output", "metadata_generated.go", "generated Go file")
+	input := flag.String("input", "internal/cldr", "directory containing pinned CLDR XML files")
+	output := flag.String("output", "metadata_generated.go", "generated English Go file")
+	translations := flag.String("translations-output", "locales_generated.go", "generated translations Go file")
+	emojiOutput := flag.String("emoji-output", "emoji_sequences_generated.go", "generated canonical emoji sequences")
 	flag.Parse()
 	data, err := generate(*input)
 	if err == nil {
 		err = os.WriteFile(*output, data, 0o644)
+	}
+	if err == nil {
+		var translated []byte
+		translated, err = generateTranslations(*input)
+		if err == nil {
+			err = os.WriteFile(*translations, translated, 0o644)
+		}
+	}
+	if err == nil {
+		var sequences []byte
+		sequences, err = generateEmoji(*input)
+		if err == nil {
+			err = os.WriteFile(*emojiOutput, sequences, 0o644)
+		}
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

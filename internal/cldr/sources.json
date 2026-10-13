@@ -1,0 +1,52 @@
+[
+  {
+    "file": "de-derived.xml",
+    "sha256": "c7511229fdfa1471cecba195ff4a094d70507a320e5364e0edc8ca5c72eeae09",
+    "locale": "de"
+  },
+  {
+    "file": "de.xml",
+    "sha256": "12eb92612539223d4dcfaec3c45437a31a82022b1c59160873fa4d4439dd7d07",
+    "locale": "de"
+  },
+  {
+    "file": "es-derived.xml",
+    "sha256": "ea9b3abc0a2c73a815faec1034764b6a503d14638ad4fb9556d8a7341838672c",
+    "locale": "es"
+  },
+  {
+    "file": "es.xml",
+    "sha256": "fe8384e9cd2ee0998eb00ddf5549272eb5b56739e539ef33fedcd727fce5026a",
+    "locale": "es"
+  },
+  {
+    "file": "fr-derived.xml",
+    "sha256": "f76bab496c0e1a9ae8fc309a6a01a313089ec167289db59c308a33cfd225f78b",
+    "locale": "fr"
+  },
+  {
+    "file": "fr.xml",
+    "sha256": "1f20666212945352b3935878f83cf9f58ab479bbf027a76fbead72793943a8b7",
+    "locale": "fr"
+  },
+  {
+    "file": "ja-derived.xml",
+    "sha256": "4f2e1b1e64594cabbe12c6f60cee497863923f49833e1631942f16d015838e67",
+    "locale": "ja"
+  },
+  {
+    "file": "ja.xml",
+    "sha256": "27b1009d4ca4cb61b68a9e8c52f974629d76d00b95711bd984783bc0f58d3da4",
+    "locale": "ja"
+  },
+  {
+    "file": "zh-derived.xml",
+    "sha256": "777acebb7c4ed103c34f5605881a2537656e0a17d9d1127518da7cd54f612bcc",
+    "locale": "zh"
+  },
+  {
+    "file": "zh.xml",
+    "sha256": "92389f71659998736530c72d4dcc86e453fe0be170cde5c5ad27094cab2a2de8",
+    "locale": "zh"
+  }
+]

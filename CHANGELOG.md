@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+ * Allow empty Remoji delimiters for greedy, longest-name trie matching with Unicode word boundaries, while retaining colon-delimited defaults.
+
+ * Add streaming `Demoji`/`Remoji` and String/Bytes helpers, configurable delimiters and locale, plain descriptive output by default, and canonical emoji sequence recognition from pinned Unicode Emoji 17.0 data.
+
+ * Extract pinned CLDR metadata for German, Spanish, French, Japanese, and Simplified Chinese. Add `Locales`, `EmojiNameFor`, `TagsFor`, `MatchEmojiFor`, and `WithLocale` with English fallback, localized picker labels, search, and accessibility state.
+
  * Add a focus-following descriptive preview, optional labeled result lists with text category tabs and visible focus markers (`WithListMode`), and comparable accessibility snapshots for pickers and swatches.
 
  * Generate English names and search keywords from a checksum-pinned CLDR 48.2 snapshot, including derived sequences. Normalize emoji presentation selectors during lookup. Include Unicode License v3 and attribution in source and browser demo distributions. Search now uses CLDR keywords instead of the previous custom synonyms.

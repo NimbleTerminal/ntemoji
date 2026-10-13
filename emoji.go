@@ -166,6 +166,7 @@ type Config struct {
 	CustomFrame  bool
 	AutoDismiss  bool
 	ShowSearch   bool
+	Locale       string
 	ListMode     bool
 	Theme        Theme
 }
@@ -257,7 +258,7 @@ func MatchEmoji(emoji, query string) bool {
 	return false
 }
 
-// WithListMode displays results as a single column with descriptive English
+// WithListMode displays results as a single column with descriptive
 // names, text category tabs, and a visible focus marker. Use up/down (or j/k)
 // to navigate results; left/right still navigate presets and categories.
 func WithListMode(enabled bool) Option {

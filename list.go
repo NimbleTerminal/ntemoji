@@ -69,7 +69,7 @@ func (m Model) labeledResults(width, rows int) string {
 				prefix = "> "
 				style = m.Theme.SelectedCellStyle
 			}
-			line = style.Render(fitLabel(prefix+e+" "+EmojiName(e), width))
+			line = style.Render(fitLabel(prefix+e+" "+EmojiNameFor(e, m.locale), width))
 		}
 		lines = append(lines, line)
 		if r < rows-1 {

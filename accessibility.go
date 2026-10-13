@@ -1,7 +1,7 @@
 package ntemoji
 
 // AccessibilityState is a plain, comparable snapshot for host accessibility
-// adapters. Names are English CLDR labels (unknown emoji fall back to the glyph).
+// adapters. Names are localized CLDR labels (unknown emoji fall back to the glyph).
 // Reading it does not move focus or confirm a selection.
 type AccessibilityState struct {
 	Focus         Focus
@@ -21,7 +21,7 @@ type AccessibilityState struct {
 // This API does not itself send screen-reader announcements.
 func (m Model) AccessibilityState() AccessibilityState {
 	s := AccessibilityState{Focus: m.Focus, ResultCount: len(m.filteredEmojis()),
-		SelectedEmoji: m.Selected, SelectedName: EmojiName(m.Selected)}
+		SelectedEmoji: m.Selected, SelectedName: EmojiNameFor(m.Selected, m.locale)}
 	if m.ShowSearch {
 		s.Query = m.SearchInput.Value()
 	}
@@ -51,7 +51,7 @@ func (m Model) AccessibilityState() AccessibilityState {
 		s.FocusedName = "Search"
 	}
 	if s.FocusedEmoji != "" {
-		s.FocusedName = EmojiName(s.FocusedEmoji)
+		s.FocusedName = EmojiNameFor(s.FocusedEmoji, m.locale)
 		if m.Focus == FocusPresets || s.Query != "" {
 			s.Category = ""
 			for _, p := range m.Palettes {
@@ -80,7 +80,7 @@ type SwatchAccessibilityState struct {
 // AccessibilityState includes the label supplied to NewSwatchPicker.
 func (s *SwatchPicker) AccessibilityState() SwatchAccessibilityState {
 	state := SwatchAccessibilityState{Label: s.label, Emoji: s.emoji,
-		Name: EmojiName(s.emoji), Focused: s.focused, Expanded: s.open}
+		Name: EmojiNameFor(s.emoji, s.locale), Focused: s.focused, Expanded: s.open}
 	if s.open {
 		state.Picker = s.picker.AccessibilityState()
 	}

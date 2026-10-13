@@ -29,6 +29,7 @@ func main() {
 		ntemoji.WithPresets([]string{"😀", "👍", "🔥", "✅", "❌", "🚨"}),
 		ntemoji.WithShowSearch(true),
 		ntemoji.WithListMode(os.Getenv("NTEMOJI_LIST") == "1"),
+		ntemoji.WithLocale(os.Getenv("NTEMOJI_LOCALE")),
 		ntemoji.WithTheme(forestTheme),
 	)
 	picker.SetZoneManager(zm)

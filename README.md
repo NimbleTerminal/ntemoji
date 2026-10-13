@@ -276,8 +276,12 @@ Made with :heart: and :fire: by the team behind [Nimble Terminal](https://nimble
 
 ## Descriptive views and accessibility state
 
+For background and assistive-technology resources, see Perkins School for the
+Blind’s [Emojis and Accessibility](https://www.perkins.org/resource/emojis-and-accessibility/),
+which links to guidance on using emoji with visual impairments, VoiceOver, and NVDA.
+
 The preview follows the focused emoji or category, independently of the confirmed
-selection. Names come from the English CLDR data. Enable a labeled result list:
+selection. Names come from CLDR data (English by default). Enable a labeled result list:
 
 ```go
 picker := ntemoji.New(
@@ -326,3 +330,101 @@ The example also publishes focused names in its browser action status. These API
 supply information for host adapters; they do not create semantic browser controls
 or send screen-reader announcements. VoiceOver/NVDA integration and testing remain
 separate work. The default view remains the compact emoji grid.
+
+## Multilingual emoji metadata
+
+Bundled metadata languages are English (`en`), German (`de`), Spanish (`es`), French
+(`fr`), Japanese (`ja`), and Simplified Chinese (`zh`). `Locales()` returns a fresh,
+sorted list. All are extracted from the same pinned CLDR 48.2 release, offline via
+`task generate-cldr`.
+
+```go
+ntemoji.EmojiNameFor("🚀", "es")           // "cohete"
+ntemoji.TagsFor("🚀", "fr")               // independent French keyword slice
+ntemoji.MatchEmojiFor("🚀", "fusée", "fr") // true
+picker := ntemoji.New(ntemoji.WithLocale("ja"), ntemoji.WithListMode(true))
+```
+
+`EmojiName` and `Tags` remain English. The locale-aware variants fall back to
+English for missing entries or unsupported languages, then preserve unknown
+emoji inputs (keywords return nil). Search accepts both localized and English
+names/keywords, without accent folding or transliteration.
+
+Locale matching accepts case-insensitive base languages and regional variants,
+with hyphens or underscores (`es-MX`, `fr_CA`). Explicit unsupported scripts fall
+back to English. `zh-TW`, `zh-HK`, `zh-MO`, and `zh-Hant` fall back to English;
+`zh-Hans` selects Simplified Chinese. This is a limited bundle matcher, not a full
+CLDR locale resolver.
+
+`WithLocale` controls emoji names in previews, list rows, accessibility snapshots,
+and search. Set it through `SwatchPicker.SetPickerOptions` for swatch names and
+its open picker. UI instructions and palette/category names are not translated.
+The bundled tables increase binary size; there are no runtime downloads.
+
+```sh
+NTEMOJI_LIST=1 NTEMOJI_LOCALE=es go run ./examples/simple
+```
+
+## Converting emoji in text
+
+`Demoji` replaces emoji with descriptive names; plain names are the default.
+`Remoji` defaults to `:name:` and can also match plain names with empty delimiters. Configure
+both delimiters with `WithDelimiters` and the language with `WithTextLocale`:
+
+```go
+plain, err := ntemoji.DemojiString("Go 🚀") // "Go rocket"
+encoded, err := ntemoji.DemojiString("Go 🚀", ntemoji.WithDelimiters("[", "]"))
+// encoded: "Go [rocket]"
+decoded, err := ntemoji.RemojiString(encoded, ntemoji.WithDelimiters("[", "]"))
+// decoded: "Go 🚀"
+spanish, err := ntemoji.DemojiString("🚀", ntemoji.WithTextLocale("es")) // "cohete"
+```
+
+All helpers return errors. `DemojiBytes` and `RemojiBytes` accept `[]byte` and
+return `([]byte, error)` without modifying or aliasing their input. Stream
+functions use destination-first argument order:
+
+```go
+err := ntemoji.Demoji(writer, reader, ntemoji.WithTextLocale("fr"))
+err = ntemoji.Remoji(writer, reader, ntemoji.WithDelimiters("[", "]"))
+```
+
+Streams are processed incrementally and are not closed. Errors can leave partial
+output. `Demoji` buffers at most a 1 MiB grapheme (larger clusters return an error);
+`Remoji` buffers its metadata index and longest possible token, not the entire
+input. Both propagate reader/writer failures, including short writes.
+
+Plain output inserts spaces between names and adjacent words or emoji names.
+Delimited output preserves surrounding spacing. Unknown emoji sequences, ordinary
+punctuation, and invalid UTF-8 bytes pass through unchanged. Text-presentation
+selectors are respected; text-default symbols such as `©` and `❤` require VS16
+(emoji presentation) to be converted.
+
+`Remoji` matches exact, case-sensitive CLDR names, including spaces and punctuation
+inside the name. It uses a trie and scans left to right, taking the longest
+complete matching name at each position. Unknown or ambiguous names remain
+unchanged; an ambiguous longest name also prevents replacement of a shorter
+prefix. Keywords and emoticons are not decoded. Choose the same locale for both
+directions. Reverse output uses canonical emoji presentation.
+
+Opt into plain names by supplying empty delimiters:
+
+```go
+text, err := ntemoji.RemojiString("fire engine rocket", ntemoji.WithDelimiters("", ""))
+// "🚒 🚀", rather than matching "fire" first
+```
+
+Each missing delimiter requires a boundary against Unicode letters, numbers,
+combining marks, connector punctuation (including `_`), and joiners. Thus
+`rocketship` remains unchanged. One-sided delimiters are also supported. Matching
+remains case-sensitive and does not perform linguistic word segmentation: an
+isolated Chinese name can match, but the same name embedded in a continuous run
+of Chinese letters does not. Plain mode can replace ordinary prose and cannot
+reliably undo plain Demoji output. The deprecated `ErrEmptyDelimiter` is retained
+for compatibility but is no longer returned.
+
+This is text replacement, not a lossless serialization: literal `:rocket:` can
+be converted, delimiters are not escaped, some names are ambiguous, and CLDR names
+can change with data releases. Plain descriptive output is intended for readable
+text; use explicit delimiters when reverse conversion is desired. Actual spoken
+punctuation depends on the screen reader and its settings.

@@ -53,6 +53,7 @@ type Model struct {
 	Theme       Theme
 	frameStyle  lipgloss.Style
 	customFrame bool
+	locale      string
 	listMode    bool
 }
 
@@ -82,6 +83,7 @@ func New(opts ...Option) Model {
 		ShowSearch:  cfg.ShowSearch,
 		AutoDismiss: cfg.AutoDismiss,
 		listMode:    cfg.ListMode,
+		locale:      cfg.Locale,
 		GridCols:    8,
 		GridRows:    5,
 		SearchInput: ti,
@@ -192,7 +194,7 @@ func (m Model) filteredEmojis() []string {
 	seen := make(map[string]bool)
 	for _, p := range m.Palettes {
 		for _, e := range p.Emojis {
-			if !seen[e] && MatchEmoji(e, query) {
+			if !seen[e] && MatchEmojiFor(e, query, m.locale) {
 				seen[e] = true
 				filtered = append(filtered, e)
 			}

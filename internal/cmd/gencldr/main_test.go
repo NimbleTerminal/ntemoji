@@ -60,3 +60,46 @@ func TestRejectChangedSnapshot(t *testing.T) {
 		t.Fatal("accepted an unverified source snapshot")
 	}
 }
+
+func TestGeneratedTranslationsAreCurrent(t *testing.T) {
+	root := filepath.Join("..", "..", "..")
+	got, err := generateTranslations(filepath.Join(root, "internal", "cldr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile(filepath.Join(root, "locales_generated.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatal("translations stale; run task generate-cldr")
+	}
+}
+
+func TestRejectChangedTranslationSnapshot(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "sources.json"), []byte(`[{"file":"fr.xml","locale":"fr","sha256":"wrong"}]`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "fr.xml"), []byte("changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := generateTranslations(dir); err == nil {
+		t.Fatal("accepted changed translation snapshot")
+	}
+}
+
+func TestGeneratedEmojiSequencesAreCurrent(t *testing.T) {
+	root := filepath.Join("..", "..", "..")
+	got, err := generateEmoji(filepath.Join(root, "internal", "cldr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile(filepath.Join(root, "emoji_sequences_generated.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatal("emoji sequences stale; run task generate-cldr")
+	}
+}
