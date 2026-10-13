@@ -104,7 +104,8 @@ The `SwatchPicker` is a small UI component representing the selected emoji with 
    mainView = swatch.ViewWithOverlay(mainView, width, height)
    return zm.Scan(mainView)
    ```
-4. **Update**: forward key and mouse events to the open swatch.
+4. **Update**: forward `tea.WindowSizeMsg` to every swatch, including closed ones, and key and mouse events to the open swatch. Pass the same terminal dimensions to `ViewWithOverlay`.
+5. **Keyboard opening**: call `swatch.OpenPicker()` and return its command from your update handler. `swatch.Open()` reports whether the modal is open.
 
 ## Keyboard & Mouse Interactions
 

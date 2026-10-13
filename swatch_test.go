@@ -97,3 +97,31 @@ func TestSwatchPickerConfirmSelection(t *testing.T) {
 		t.Error("Expected nil command on selection confirmation since it is handled by the swatch")
 	}
 }
+
+func TestSwatchViewDoesNotResizeOrChangeBounds(t *testing.T) {
+	s := NewSwatchPicker("😀", "test")
+	s.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	s.OpenPicker()
+	before := *s
+	s.ViewWithOverlay("background", 40, 20)
+	if s.picker.Width != before.picker.Width || s.picker.Height != before.picker.Height ||
+		s.lastViewWidth != before.lastViewWidth || s.lastViewHeight != before.lastViewHeight ||
+		s.lastModalW != before.lastModalW || s.lastOverlayHeight != before.lastOverlayHeight ||
+		s.lastOverlayLeft != before.lastOverlayLeft || s.lastOverlayTop != before.lastOverlayTop {
+		t.Fatal("render changed layout state")
+	}
+}
+
+func TestMouseOpenIgnoresOnlyOpeningRelease(t *testing.T) {
+	s := NewSwatchPicker("😀", "test")
+	s.SetBounds(0, 0, 4, 1)
+	s.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	s, _ = s.Update(tea.MouseClickMsg{X: 1, Y: 0, Button: tea.MouseLeft})
+	if !s.ignoreNextRelease {
+		t.Fatal("mouse open must ignore opening release")
+	}
+	s, cmd := s.Update(tea.MouseReleaseMsg{X: 1, Y: 0, Button: tea.MouseLeft})
+	if s.ignoreNextRelease || cmd != nil {
+		t.Fatal("opening release was not consumed exactly once")
+	}
+}

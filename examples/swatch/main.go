@@ -44,7 +44,8 @@ type appModel struct {
 
 func newApp() *appModel {
 	a := &appModel{
-		zm: zone.New(),
+		zm:    zone.New(),
+		width: 60, height: 20,
 		swatches: [4]*ntemoji.SwatchPicker{
 			ntemoji.NewSwatchPicker("🚀", "Launcher"),
 			ntemoji.NewSwatchPicker("🔥", "Hotness"),
@@ -60,6 +61,11 @@ func newApp() *appModel {
 			ntemoji.WithPresets([]string{"😀", "👍", "🔥", "✅", "❌", "🚨"}),
 			ntemoji.WithShowSearch(true),
 		)
+	}
+	sw, sh := a.swatches[0].Size()
+	for i, s := range a.swatches {
+		s.SetBounds(2+i/2, labelLen+(i%2)*(sw+gap+labelLen), sw, sh)
+		s.Update(tea.WindowSizeMsg{Width: a.width, Height: a.height})
 	}
 	return a
 }
@@ -79,6 +85,14 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.height <= 0 {
 			a.height = 20
 		}
+
+		var cmds []tea.Cmd
+		for i, s := range a.swatches {
+			var cmd tea.Cmd
+			a.swatches[i], cmd = s.Update(tea.WindowSizeMsg{Width: a.width, Height: a.height})
+			cmds = append(cmds, cmd)
+		}
+		return a, tea.Batch(cmds...)
 
 	case tea.KeyPressMsg:
 		if msg.String() == "ctrl+c" {
@@ -100,21 +114,8 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.quitting = true
 				return a, tea.Quit
 			}
-			var cmd tea.Cmd
-			openPress := tea.MouseClickMsg{Button: tea.MouseLeft}
-			switch msg.String() {
-			case "1":
-				a.swatches[0], cmd = a.swatches[0].Update(openPress)
-				return a, cmd
-			case "2":
-				a.swatches[1], cmd = a.swatches[1].Update(openPress)
-				return a, cmd
-			case "3":
-				a.swatches[2], cmd = a.swatches[2].Update(openPress)
-				return a, cmd
-			case "4":
-				a.swatches[3], cmd = a.swatches[3].Update(openPress)
-				return a, cmd
+			if index, err := strconv.Atoi(msg.String()); err == nil && index >= 1 && index <= len(a.swatches) {
+				return a, a.swatches[index-1].OpenPicker()
 			}
 		}
 	}
@@ -169,13 +170,6 @@ func swatchZoneID(i int) string {
 }
 
 func (a *appModel) View() tea.View {
-	if a.width <= 0 {
-		a.width = 60
-	}
-	if a.height <= 0 {
-		a.height = 20
-	}
-
 	mainView := a.buildMainView()
 	for _, s := range a.swatches {
 		mainView = s.ViewWithOverlay(mainView, a.width, a.height)
@@ -189,16 +183,6 @@ func (a *appModel) View() tea.View {
 func (a *appModel) buildMainView() string {
 	title := lipgloss.NewStyle().Bold(true).Render("Click an emoji swatch to change it, or press keys 1-4")
 	help := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("q: quit")
-
-	sw, sh := a.swatches[0].Size()
-	col1 := labelLen
-	col2 := col1 + sw + gap + labelLen
-
-	// Position swatches in 2x2 grid
-	a.swatches[0].SetBounds(2, col1, sw, sh)
-	a.swatches[1].SetBounds(2, col2, sw, sh)
-	a.swatches[2].SetBounds(3, col1, sw, sh)
-	a.swatches[3].SetBounds(3, col2, sw, sh)
 
 	label0 := fmt.Sprintf("%-*s", labelLen, "Emoji 1:")
 	label1 := fmt.Sprintf("%-*s", labelLen, "Emoji 2:")

@@ -86,6 +86,31 @@ func (s *SwatchPicker) Open() bool {
 	return s.open
 }
 
+// OpenPicker opens the modal for keyboard or programmatic activation.
+// Forward WindowSizeMsg through Update before opening to fit the available space.
+// Mouse selection inside the modal requires a zone manager and scanning the view.
+func (s *SwatchPicker) OpenPicker() tea.Cmd {
+	if s.open {
+		return nil
+	}
+	s.picker = s.newPickerModel()
+	updated, cmd := s.picker.Update(tea.WindowSizeMsg{Width: s.lastViewWidth, Height: s.lastViewHeight})
+	s.picker = updated.(Model)
+	s.open = true
+	s.ignoreNextRelease = false
+	s.updateOverlayBounds()
+	return cmd
+}
+
+func (s *SwatchPicker) updateOverlayBounds() {
+	if !s.open {
+		return
+	}
+	s.lastModalW, s.lastOverlayHeight = s.picker.ViewSize()
+	s.lastOverlayTop, s.lastOverlayLeft = Fixed(s.row+s.h/2-s.lastOverlayHeight/2, s.col+s.w/2-s.lastModalW/2).
+		ClampedOrigin(s.lastModalW, s.lastOverlayHeight, s.lastViewWidth, s.lastViewHeight)
+}
+
 // SetZoneManager configures the bubblezone manager.
 func (s *SwatchPicker) SetZoneManager(zm *zone.Manager) {
 	s.zoneManager = zm
@@ -100,6 +125,7 @@ func (s *SwatchPicker) Size() (width, height int) {
 func (s *SwatchPicker) SetBounds(row, col, w, h int) {
 	s.row = row
 	s.col = col
+	defer s.updateOverlayBounds()
 	if w <= 0 || h <= 0 {
 		pw, ph := s.Size()
 		if w <= 0 {
@@ -129,15 +155,10 @@ func (s *SwatchPicker) Emoji() string {
 }
 
 // ViewWithOverlay renders the overlay modal on top of mainView when the picker is open.
+// Forward WindowSizeMsg through Update with the same dimensions before rendering.
 func (s *SwatchPicker) ViewWithOverlay(mainView string, viewWidth, viewHeight int) string {
-	s.lastViewWidth = viewWidth
-	s.lastViewHeight = viewHeight
 	if !s.open {
 		return mainView
-	}
-	if s.picker.Width != viewWidth || s.picker.Height != viewHeight {
-		updated, _ := s.picker.Update(tea.WindowSizeMsg{Width: viewWidth, Height: viewHeight})
-		s.picker = updated.(Model)
 	}
 	modalContent := s.picker.View().Content
 	modalW, overlayHeight := ModalCellSize(modalContent)
@@ -145,12 +166,6 @@ func (s *SwatchPicker) ViewWithOverlay(mainView string, viewWidth, viewHeight in
 	centerCol := s.col + s.w/2
 	topPad, leftPad := Fixed(centerRow-overlayHeight/2, centerCol-modalW/2).
 		ClampedOrigin(modalW, overlayHeight, viewWidth, viewHeight)
-	s.lastOverlayLeft = leftPad
-	s.lastOverlayTop = topPad
-	s.lastModalW = modalW
-	s.lastOverlayHeight = overlayHeight
-	s.lastViewWidth = viewWidth
-	s.lastViewHeight = viewHeight
 	return OverlayView(mainView, modalContent, viewWidth, viewHeight, topPad, leftPad)
 }
 
@@ -163,15 +178,7 @@ func (s *SwatchPicker) Update(msg tea.Msg) (*SwatchPicker, tea.Cmd) {
 		if s.open {
 			picker, cmd := s.picker.Update(m)
 			s.picker = picker.(Model)
-			s.lastModalW, s.lastOverlayHeight = s.picker.ViewSize()
-			if s.lastOverlayHeight > 0 && s.lastModalW > 0 {
-				centerRow := s.row + s.h/2
-				centerCol := s.col + s.w/2
-				topPad, leftPad := Fixed(centerRow-s.lastOverlayHeight/2, centerCol-s.lastModalW/2).
-					ClampedOrigin(s.lastModalW, s.lastOverlayHeight, s.lastViewWidth, s.lastViewHeight)
-				s.lastOverlayLeft = leftPad
-				s.lastOverlayTop = topPad
-			}
+			s.updateOverlayBounds()
 			return s, cmd
 		}
 		return s, nil
@@ -227,10 +234,7 @@ func (s *SwatchPicker) Update(msg tea.Msg) (*SwatchPicker, tea.Cmd) {
 				s.picker = updated.(Model)
 				return s, cmd
 			}
-			relMsg := offsetMouseMsg(m, 2-leftPad, 1-topPad)
-			updated, cmd := s.picker.Update(relMsg)
-			s.picker = updated.(Model)
-			return s, cmd
+			return s, nil
 		}
 
 		if isPress && mouse.Button == tea.MouseLeft {
@@ -238,21 +242,9 @@ func (s *SwatchPicker) Update(msg tea.Msg) (*SwatchPicker, tea.Cmd) {
 				(mouse.X >= s.col && mouse.X < s.col+s.w && mouse.Y >= s.row && mouse.Y < s.row+s.h)
 			if inBounds {
 				next := *s
-				next.picker = next.newPickerModel()
-				picker, cmd := next.picker.Update(tea.WindowSizeMsg{Width: next.lastViewWidth, Height: next.lastViewHeight})
-				next.picker = picker.(Model)
-				next.open = true
+				cmd := next.OpenPicker()
 				next.ignoreNextRelease = true
 
-				modalW, overlayHeight := next.picker.ViewSize()
-				centerRow := next.row + next.h/2
-				centerCol := next.col + next.w/2
-				topPad, leftPad := Fixed(centerRow-overlayHeight/2, centerCol-modalW/2).
-					ClampedOrigin(modalW, overlayHeight, next.lastViewWidth, next.lastViewHeight)
-				next.lastOverlayLeft = leftPad
-				next.lastOverlayTop = topPad
-				next.lastModalW = modalW
-				next.lastOverlayHeight = overlayHeight
 				return &next, cmd
 			}
 		}
@@ -282,39 +274,4 @@ func (s *SwatchPicker) Update(msg tea.Msg) (*SwatchPicker, tea.Cmd) {
 		return s, cmd
 	}
 	return s, nil
-}
-
-// MouseToModalCoords converts screen coordinates to modal-relative coordinates.
-func MouseToModalCoords(screenX, screenY, overlayLeft, overlayTop int) (relX, relY int) {
-	relY = screenY - overlayTop + 1
-	relX = screenX - overlayLeft + 2
-	return relX, relY
-}
-
-func offsetMouseMsg(m tea.MouseMsg, dx, dy int) tea.MouseMsg {
-	switch concrete := m.(type) {
-	case tea.MouseClickMsg:
-		return tea.MouseClickMsg{
-			X:      concrete.X + dx,
-			Y:      concrete.Y + dy,
-			Button: concrete.Button,
-			Mod:    concrete.Mod,
-		}
-	case tea.MouseReleaseMsg:
-		return tea.MouseReleaseMsg{
-			X:      concrete.X + dx,
-			Y:      concrete.Y + dy,
-			Button: concrete.Button,
-			Mod:    concrete.Mod,
-		}
-	case tea.MouseMotionMsg:
-		return tea.MouseMotionMsg{
-			X:      concrete.X + dx,
-			Y:      concrete.Y + dy,
-			Button: concrete.Button,
-			Mod:    concrete.Mod,
-		}
-	default:
-		return m
-	}
 }
