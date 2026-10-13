@@ -31,6 +31,11 @@ tasks:
       - go get -u tool
       - go mod tidy
 
+  generate-cldr:
+    desc: 'Regenerate emoji metadata offline from the pinned CLDR snapshot'
+    cmds:
+      - go generate ./...
+
   test:
     desc: 'Run all Go tests'
     cmds:
@@ -120,5 +125,5 @@ tasks:
   clean-wasm-site:
     desc: 'Remove WASM demo site artifacts'
     cmds:
-      - rm -rf web/booba web/ghostty-web web/_assets web/demos
+      - rm -rf web/booba web/ghostty-web web/_assets web/demos web/third_party
       - rm -f web/wasm_exec.js web/app.wasm web/index.html web/style.css web/demo.js

@@ -43,8 +43,8 @@ type Model struct {
 	Width  int
 	Height int
 
-	GridCols int
-	GridRows int
+	GridCols int // Grid columns; in list mode, controls width in four-cell units.
+	GridRows int // Visible result rows in either mode.
 
 	gridOffset int // First visible row; moving within the viewport does not scroll.
 
@@ -53,6 +53,7 @@ type Model struct {
 	Theme       Theme
 	frameStyle  lipgloss.Style
 	customFrame bool
+	listMode    bool
 }
 
 // New constructs a new EmojiPicker Model with the given options.
@@ -80,6 +81,7 @@ func New(opts ...Option) Model {
 		Focus:       FocusGrid,
 		ShowSearch:  cfg.ShowSearch,
 		AutoDismiss: cfg.AutoDismiss,
+		listMode:    cfg.ListMode,
 		GridCols:    8,
 		GridRows:    5,
 		SearchInput: ti,
@@ -113,10 +115,11 @@ func New(opts ...Option) Model {
 			for eIdx, e := range p.Emojis {
 				if e == cfg.InitialEmoji {
 					m.ActiveTab = pIdx
-					cols, _ := m.gridDims()
+					cols := m.resultCols()
 					m.GridCursorX = eIdx % cols
 					m.GridCursorY = eIdx / cols
 					m.Focus = FocusGrid
+					m.SearchInput.Blur()
 					return m
 				}
 			}
@@ -165,7 +168,7 @@ func (m Model) SelectedEmoji() string {
 	if len(emojis) == 0 {
 		return ""
 	}
-	cols, _ := m.gridDims()
+	cols := m.resultCols()
 	idx := m.GridCursorY*cols + m.GridCursorX
 	if idx >= 0 && idx < len(emojis) {
 		return emojis[idx]
@@ -239,7 +242,7 @@ func (m *Model) clampCursor(totalEmojis int) {
 		return
 	}
 
-	cols, _ := m.gridDims()
+	cols := m.resultCols()
 
 	totalRows := (totalEmojis + cols - 1) / cols
 
@@ -281,7 +284,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		// Preserve the selected emoji when the terminal changes the column count.
-		cols, _ := m.gridDims()
+		cols := m.resultCols()
 		selectedIndex := m.GridCursorY*cols + m.GridCursorX
 		m.Width = msg.Width
 		m.Height = msg.Height
@@ -317,8 +320,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.GridCols, m.GridRows = measure.GridCols, measure.GridRows
 
-		m.GridCursorX = selectedIndex % m.GridCols
-		m.GridCursorY = selectedIndex / m.GridCols
+		m.GridCursorX = selectedIndex % m.resultCols()
+		m.GridCursorY = selectedIndex / m.resultCols()
 		m.gridOffset = 0
 		m.clampCursor(len(m.filteredEmojis()))
 		return m, nil
@@ -488,11 +491,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if z := m.zm.Get(ZoneGrid); z != nil && z.InBounds(msg) {
 			relX, relY := z.Pos(msg)
 			cellX := relX / 4
+			if m.listMode {
+				cellX = 0
+			}
 			// Blank separator lines do not select an emoji.
 			if relY%2 != 0 {
 				return m, nil
 			}
-			cols, _ := m.gridDims()
+			cols := m.resultCols()
 			cellY := relY/2 + m.gridOffset
 			emojis := m.filteredEmojis()
 
@@ -548,15 +554,20 @@ func (m Model) View() tea.View {
 		BorderLeft(true).BorderRight(true).BorderTop(true).BorderBottom(true).
 		BorderForeground(m.Theme.BorderUnfocusedColor)
 
-	// 1. Header (Title + Value Preview)
+	// The preview follows focus, independently of the committed selection.
 	headerStr := m.Theme.TitleStyle.Render("Pick an Emoji")
-	activeVal := m.Value()
-	if activeVal != "" {
-		tagsStr := ""
-		if tags, ok := EmojiTags[activeVal]; ok && len(tags) > 0 {
-			tagsStr = fmt.Sprintf(" (%s)", strings.Join(tags[:min(2, len(tags))], ", "))
-		}
-		headerStr += fmt.Sprintf(": %s%s", activeVal, m.Theme.HelpStyle.Render(tagsStr))
+	state := m.AccessibilityState()
+	preview := state.FocusedName
+	if state.FocusedEmoji != "" {
+		preview = state.FocusedEmoji + " " + preview
+	}
+	if state.Count > 0 {
+		preview += fmt.Sprintf(" (%d/%d)", state.Position, state.Count)
+	}
+	if m.Focus == FocusSearch {
+		preview = fmt.Sprintf("Search: %d results", state.ResultCount)
+	} else if m.Focus == FocusGrid && state.ResultCount == 0 {
+		preview = "No matching emoji"
 	}
 
 	// Helper to center text in the inner content area
@@ -573,7 +584,7 @@ func (m Model) View() tea.View {
 	}
 
 	var sections []string
-	sections = append(sections, toCols(headerStr))
+	sections = append(sections, toCols(headerStr), toCols(m.Theme.HelpStyle.Render(preview)))
 
 	cellStyle := lipgloss.NewStyle().Width(4).MaxWidth(4).Align(lipgloss.Center)
 
@@ -585,6 +596,9 @@ func (m Model) View() tea.View {
 				presetLine += "\n"
 			}
 			cell := cellStyle.Render(p)
+			if m.listMode && m.Focus == FocusPresets && i == m.PresetCursor {
+				cell = cellStyle.Render(">" + p)
+			}
 			if m.Focus == FocusPresets && i == m.PresetCursor {
 				presetLine += m.Theme.SelectedPresetStyle.Render(cell)
 			} else {
@@ -623,25 +637,29 @@ func (m Model) View() tea.View {
 
 	// 4. Categories Selector
 	catLine := ""
-	for i, p := range m.Palettes {
-		if i > 0 && i%cols == 0 {
-			catLine += "\n"
+	if m.listMode {
+		catLine = m.textCategories(innerW)
+	} else {
+		for i, p := range m.Palettes {
+			if i > 0 && i%cols == 0 {
+				catLine += "\n"
+			}
+			tabText := cellStyle.Render(p.Icon)
+			var style lipgloss.Style
+			if i == m.ActiveTab {
+				style = m.Theme.ActiveTabStyle
+			} else {
+				style = m.Theme.InactiveTabStyle
+			}
+			tabRendered := style.Render(tabText)
+			if m.zm != nil {
+				tabRendered = m.zm.Mark(fmt.Sprintf("picker-tab-%d", i), tabRendered)
+			}
+			catLine += tabRendered
 		}
-		tabText := cellStyle.Render(p.Icon)
-		var style lipgloss.Style
-		if i == m.ActiveTab {
-			style = m.Theme.ActiveTabStyle
-		} else {
-			style = m.Theme.InactiveTabStyle
+		if remainder := len(m.Palettes) % cols; remainder != 0 {
+			catLine += strings.Repeat(" ", (cols-remainder)*4)
 		}
-		tabRendered := style.Render(tabText)
-		if m.zm != nil {
-			tabRendered = m.zm.Mark(fmt.Sprintf("picker-tab-%d", i), tabRendered)
-		}
-		catLine += tabRendered
-	}
-	if remainder := len(m.Palettes) % cols; remainder != 0 {
-		catLine += strings.Repeat(" ", (cols-remainder)*4)
 	}
 	catBlock := catLine
 	if m.zm != nil {
@@ -658,29 +676,33 @@ func (m Model) View() tea.View {
 	scrollOffset := m.gridScrollOffset()
 
 	gridStr := ""
-	for r := 0; r < rows; r++ {
-		rowIdx := r + scrollOffset
-		line := ""
-		for c := 0; c < cols; c++ {
-			idx := rowIdx*cols + c
-			if idx < len(emojis) {
-				emojiCell := cellStyle.Render(emojis[idx])
-				isSelected := c == m.GridCursorX && rowIdx == m.GridCursorY
-				if isSelected && m.Focus == FocusGrid {
-					line += m.Theme.SelectedCellStyle.Render(emojiCell)
-				} else if isSelected {
-					// selected but grid is not focused
-					line += m.Theme.SelectedUnfocusedCellStyle.Render(emojiCell)
+	if m.listMode {
+		gridStr = m.labeledResults(innerW, rows)
+	} else {
+		for r := 0; r < rows; r++ {
+			rowIdx := r + scrollOffset
+			line := ""
+			for c := 0; c < cols; c++ {
+				idx := rowIdx*cols + c
+				if idx < len(emojis) {
+					emojiCell := cellStyle.Render(emojis[idx])
+					isSelected := c == m.GridCursorX && rowIdx == m.GridCursorY
+					if isSelected && m.Focus == FocusGrid {
+						line += m.Theme.SelectedCellStyle.Render(emojiCell)
+					} else if isSelected {
+						// selected but grid is not focused
+						line += m.Theme.SelectedUnfocusedCellStyle.Render(emojiCell)
+					} else {
+						line += m.Theme.UnselectedCellStyle.Render(emojiCell)
+					}
 				} else {
-					line += m.Theme.UnselectedCellStyle.Render(emojiCell)
+					line += "    " // 4 spaces
 				}
-			} else {
-				line += "    " // 4 spaces
 			}
-		}
-		gridStr += line + "\n"
-		if r < rows-1 {
-			gridStr += strings.Repeat(" ", innerW) + "\n"
+			gridStr += line + "\n"
+			if r < rows-1 {
+				gridStr += strings.Repeat(" ", innerW) + "\n"
+			}
 		}
 	}
 	gridBlock := strings.TrimSuffix(gridStr, "\n")
@@ -695,7 +717,11 @@ func (m Model) View() tea.View {
 
 	// 6. Help Footer
 	footer1 := m.Theme.HelpStyle.Render("↵ pick  ⎋ close  ⇥ switch focus")
-	footer2 := m.Theme.HelpStyle.Render("←↑↓→ move  hjkl navigates grid")
+	help := "←↑↓→ move  hjkl navigates grid"
+	if m.listMode {
+		help = "↑↓ / jk results  ←→ tabs/presets"
+	}
+	footer2 := m.Theme.HelpStyle.Render(help)
 	sections = append(sections, toCols(footer1))
 	sections = append(sections, toCols(footer2))
 

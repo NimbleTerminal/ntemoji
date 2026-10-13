@@ -166,6 +166,7 @@ type Config struct {
 	CustomFrame  bool
 	AutoDismiss  bool
 	ShowSearch   bool
+	ListMode     bool
 	Theme        Theme
 }
 
@@ -235,137 +236,30 @@ type EmojiChosenMsg = EmojiChangedMsg
 // EmojiCanceledMsg is emitted when the user cancels the picker (e.g. presses Esc).
 type EmojiCanceledMsg struct{}
 
-// MatchEmoji returns true if the emoji matches the query based on tags.
+// MatchEmoji returns true if the emoji, its English name, or its tags match the query.
 func MatchEmoji(emoji, query string) bool {
 	if query == "" {
 		return true
 	}
 	importStr := strings.ToLower(query)
-	if strings.Contains(emoji, importStr) {
+	if strings.Contains(emoji, importStr) || strings.Contains(strings.ToLower(emojiNames[metadataKey(emoji)]), importStr) {
 		return true
 	}
-	tags, ok := EmojiTags[emoji]
+	tags, ok := emojiTags[metadataKey(emoji)]
 	if !ok {
 		return false
 	}
 	for _, t := range tags {
-		if strings.Contains(t, importStr) {
+		if strings.Contains(strings.ToLower(t), importStr) {
 			return true
 		}
 	}
 	return false
 }
 
-// EmojiTags maps common emojis to searchable keywords.
-var EmojiTags = map[string][]string{
-	// Smileys
-	"😀":  {"smile", "happy", "face", "grinning", "laugh"},
-	"😃":  {"smile", "happy", "face", "grinning", "laugh", "open"},
-	"😄":  {"smile", "happy", "face", "grinning", "laugh", "eyes"},
-	"😁":  {"smile", "happy", "face", "grinning", "laugh", "teeth"},
-	"😆":  {"smile", "happy", "face", "grinning", "laugh", "closed"},
-	"😅":  {"smile", "happy", "face", "sweat", "laugh"},
-	"😂":  {"smile", "happy", "face", "tears", "joy", "laugh", "crying"},
-	"🤣":  {"smile", "happy", "face", "tears", "joy", "laugh", "rofl", "floor"},
-	"😊":  {"smile", "happy", "face", "blush", "nice"},
-	"😇":  {"smile", "happy", "face", "angel", "halo"},
-	"🙂":  {"smile", "happy", "face", "slight"},
-	"🙃":  {"smile", "happy", "face", "upside", "down"},
-	"😉":  {"smile", "happy", "face", "wink"},
-	"😌":  {"smile", "happy", "face", "relieved", "calm"},
-	"😍":  {"smile", "happy", "face", "love", "heart", "eyes"},
-	"🥰":  {"smile", "happy", "face", "love", "hearts", "affection"},
-	"😘":  {"smile", "happy", "face", "love", "kiss", "blowing"},
-	"🤔":  {"think", "face", "pondering", "question", "hm"},
-	"👍":  {"thumbs", "up", "like", "yes", "agree", "ok", "good"},
-	"👎":  {"thumbs", "down", "dislike", "no", "bad", "disagree"},
-	"🤞":  {"crossed", "fingers", "luck", "hope", "hand", "gesture"},
-	"🎉":  {"party", "celebration", "popper", "congrats", "hooray"},
-	"🚀":  {"rocket", "space", "launch", "fast", "ship"},
-	"🔥":  {"fire", "hot", "burn", "lit", "flame"},
-	"💡":  {"light", "bulb", "idea", "inspiration", "brain"},
-	"🌟":  {"star", "shine", "sparkle", "gold"},
-	"💥":  {"collision", "explosion", "boom", "bang"},
-	"💖":  {"heart", "love", "red"},
-	"✅":  {"check", "mark", "correct", "yes", "green", "done", "success"},
-	"❌":  {"cross", "mark", "wrong", "no", "red", "fail", "error"},
-	"🚨":  {"warning", "alert", "danger", "yellow", "caution"},
-	"📢":  {"info", "information", "blue", "about"},
-	"⚙":  {"gear", "settings", "cog", "tool", "config"},
-	"🔧":  {"wrench", "spanner", "tool", "repair", "fix"},
-	"🟢":  {"green", "circle", "status", "go", "dot"},
-	"🔴":  {"red", "circle", "status", "stop", "dot"},
-	"🟡":  {"yellow", "circle", "status", "wait", "dot"},
-	"🔵":  {"blue", "circle", "status", "dot"},
-	"⏰":  {"alarm", "clock", "time", "wake"},
-	"⏳":  {"hourglass", "time", "wait", "loading"},
-	"📝":  {"memo", "write", "note", "paper", "pencil"},
-	"💻":  {"computer", "laptop", "pc", "tech", "screen"},
-	"📁":  {"folder", "file", "directory", "save"},
-	"📦":  {"package", "box", "delivery", "shipping"},
-	"🛠️": {"tools", "hammer", "wrench", "build", "dev", "fix"},
-	"📩":  {"envelope", "mail", "letter", "email"},
-	"📈":  {"chart", "graph", "increase", "up", "trend"},
-	"📉":  {"chart", "graph", "decrease", "down", "trend"},
-	"📊":  {"chart", "graph", "bar", "stats"},
-	"🏁":  {"flag", "checkered", "finish", "done"},
-	"🧰":  {"toolbox", "box", "tools", "kit", "config"},
-	"🔑":  {"key", "lock", "access", "secret"},
-	"🔒":  {"lock", "secure", "closed", "security"},
-	"🔓":  {"lock", "unlock", "open", "access"},
-	// Animals & Nature
-	"🐱": {"cat", "feline", "animal", "pet"},
-	"🐈": {"cat", "feline", "animal", "pet", "walking"},
-	"🐶": {"dog", "canine", "animal", "pet", "puppy"},
-	"🐕": {"dog", "canine", "animal", "pet", "walking"},
-	"🦊": {"fox", "animal", "wild"},
-	"🦁": {"lion", "animal", "wild", "cat"},
-	"🐯": {"tiger", "animal", "wild", "cat"},
-	"🐵": {"monkey", "animal"},
-	"🐮": {"cow", "animal", "farm"},
-	"🐷": {"pig", "animal", "farm"},
-	"🐸": {"frog", "animal", "amphibian"},
-	"🐙": {"octopus", "animal", "sea"},
-	"🐝": {"bee", "bug", "insect", "honey"},
-	"🐛": {"bug", "insect", "caterpillar"},
-	"🐧": {"penguin", "bird", "animal", "cold"},
-	"🦉": {"owl", "bird", "animal"},
-	"🐢": {"turtle", "animal", "reptile"},
-	"🐍": {"snake", "animal", "reptile"},
-	"🐬": {"dolphin", "animal", "sea"},
-	"🌲": {"tree", "pine", "forest", "nature"},
-	"🌳": {"tree", "forest", "nature"},
-	"🌵": {"cactus", "plant", "desert"},
-	"🍁": {"maple", "leaf", "canada", "fall"},
-	"🌞": {"sun", "sunny", "weather", "hot"},
-	"🌈": {"rainbow", "color", "sky", "weather", "nature"},
-	"⛄": {"snowman", "snow", "cold", "weather", "winter"},
-	"⚡": {"lightning", "thunder", "storm", "flash"},
-	"🌊": {"wave", "water", "sea", "ocean"},
-	"🌍": {"globe", "earth", "world", "map"},
-
-	// Food & Drink
-	"🍏": {"apple", "green", "fruit", "food"},
-	"🍎": {"apple", "red", "fruit", "food"},
-	"🍌": {"banana", "yellow", "fruit", "food"},
-	"🍉": {"watermelon", "fruit", "food"},
-	"🍇": {"grapes", "fruit", "food"},
-	"🍓": {"strawberry", "fruit", "food"},
-	"🍕": {"pizza", "food", "italian"},
-	"🍔": {"burger", "hamburger", "food"},
-	"🍟": {"fries", "french fries", "food"},
-	"🌭": {"hotdog", "hot dog", "food"},
-	"🌮": {"taco", "food", "mexican"},
-	"🍿": {"popcorn", "food", "snack"},
-	"🍙": {"riceball", "rice", "food", "japanese"},
-	"🍣": {"sushi", "fish", "food", "japanese"},
-	"🍦": {"icecream", "ice cream", "sweet", "dessert"},
-	"🍩": {"donut", "doughnut", "sweet", "dessert"},
-	"🍪": {"cookie", "sweet", "dessert", "snack"},
-	"🎂": {"cake", "birthday", "sweet", "dessert"},
-	"☕": {"coffee", "cafe", "drink", "hot"},
-	"🍵": {"tea", "drink", "hot", "green"},
-	"🍺": {"beer", "alcohol", "drink", "bar"},
-	"🍷": {"wine", "alcohol", "drink"},
-	"🍸": {"cocktail", "alcohol", "drink"},
+// WithListMode displays results as a single column with descriptive English
+// names, text category tabs, and a visible focus marker. Use up/down (or j/k)
+// to navigate results; left/right still navigate presets and categories.
+func WithListMode(enabled bool) Option {
+	return func(c *Config) { c.ListMode = enabled }
 }

@@ -28,6 +28,7 @@ func main() {
 		ntemoji.WithInitialEmoji("🚀"),
 		ntemoji.WithPresets([]string{"😀", "👍", "🔥", "✅", "❌", "🚨"}),
 		ntemoji.WithShowSearch(true),
+		ntemoji.WithListMode(os.Getenv("NTEMOJI_LIST") == "1"),
 		ntemoji.WithTheme(forestTheme),
 	)
 	picker.SetZoneManager(zm)
@@ -93,5 +94,15 @@ func (m *simpleModel) View() tea.View {
 }
 
 func (m *simpleModel) DemoActions() demorun.Description {
-	return demorun.PickerActions()
+	description := demorun.PickerActions()
+	state := m.picker.AccessibilityState()
+	// Hosts can use this same snapshot in a status line or accessibility adapter.
+	// Publishing browser action status alone does not announce it to a reader.
+	description.Status.Summary = state.FocusedName
+	if state.Count > 0 {
+		description.Status.Summary += fmt.Sprintf(" (%d of %d)", state.Position, state.Count)
+	} else if state.Focus == ntemoji.FocusSearch {
+		description.Status.Summary = fmt.Sprintf("Search: %d results", state.ResultCount)
+	}
+	return description
 }

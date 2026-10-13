@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+ * Add a focus-following descriptive preview, optional labeled result lists with text category tabs and visible focus markers (`WithListMode`), and comparable accessibility snapshots for pickers and swatches.
+
+ * Generate English names and search keywords from a checksum-pinned CLDR 48.2 snapshot, including derived sequences. Normalize emoji presentation selectors during lookup. Include Unicode License v3 and attribution in source and browser demo distributions. Search now uses CLDR keywords instead of the previous custom synonyms.
+
+ * Add `EmoticonToEmoji` and `EmojiToEmoticon` for common ASCII emoticons, with preferred reverse spellings, unchanged unknown inputs, and descriptive labels for every conversion result.
+
+ * Replace the exported mutable `EmojiTags` map with `Tags(emoji)`, which returns an independent keyword slice, and `EmojiName(emoji)` for descriptive English labels. Cover every built-in emoji and include names in search. This is a breaking API change; replace `EmojiTags[emoji]` with `Tags(emoji)`.
+
  * Keep wrapped category tabs clickable and clip overlays, graphemes, and mouse zones to the supplied viewport.
 
  * Keep the scrolled grid stable during mouse selection and align wrapped preset rows with their mouse targets.

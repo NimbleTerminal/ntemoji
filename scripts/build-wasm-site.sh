@@ -10,3 +10,5 @@ done
 go tool booba-assets web/
 # Always install the tracked showcase over the generated starter page.
 cp site/index.html site/style.css site/demo.js web/
+mkdir -p web/third_party/unicode
+cp third_party/unicode/LICENSE.txt third_party/unicode/NOTICE.txt web/third_party/unicode/

@@ -130,6 +130,77 @@ Construct the emoji picker with **`New(...Option)`**:
 | `WithAutoDismiss(bool)` | When true, selection includes `Dismiss: true` to auto-hide the modal. |
 | `WithShowSearch(bool)` | Toggles the search input box for matching keywords. |
 
+## Emoji names and search keywords
+
+```go
+ntemoji.EmojiName("👍") // "thumbs up"
+ntemoji.Tags("👍")      // []string{"+1", "good", "hand", "like", "thumb", "up", "yes"}
+```
+
+`EmojiName` returns the English Unicode CLDR short name (TTS name) for supported
+emoji, sequences, and annotated symbols, including every built-in emoji constant
+and default palette entry. Unknown values are returned unchanged; an empty input
+returns an empty string. Applications with custom palettes can provide their own
+labels before falling back to this lookup. Names are display text, not stable IDs.
+
+`Tags` returns a fresh slice of CLDR search keywords, or the descriptive name as its
+only entry when there are no extra keywords. Unknown values return `nil`.
+Changing the returned slice cannot affect another picker or its search results.
+Search matches both descriptive names and keywords, ignoring case.
+
+Metadata is generated from pinned **CLDR 48.2** English annotations and derived
+annotations. Skin tones, flags, and joined sequences are included. Presentation
+selectors are ignored for lookup, so `❤` and `❤️` share a name and keywords.
+The default palettes remain curated for terminal use; broader metadata coverage
+does not imply that every supported sequence renders reliably in every terminal.
+
+Run `task generate-cldr` to reproduce the tables offline from checked-in sources
+(or run `go generate ./...` directly).
+See [source versions, checksums, and update instructions](internal/cldr/README.md).
+
+Use `EmojiName` when supplying accessibility labels in your application. These
+lookups provide metadata; applications still need to expose those labels through
+their terminal or browser accessibility integration.
+
+**API migration:** replace `EmojiTags[emoji]` with `Tags(emoji)`. The exported
+mutable `EmojiTags` map has been removed; global keyword mutation is no longer
+supported. Search keywords now come from CLDR rather than the previous custom
+synonyms, so keyword contents and search results can differ.
+
+## Emoticon conversion
+
+```go
+ntemoji.EmoticonToEmoji(":-)") // "🙂"
+ntemoji.EmojiToEmoticon("🙂")  // ":)"
+ntemoji.EmoticonToEmoji("<3")  // "❤️"
+```
+
+These functions convert one complete value, matching exactly without trimming
+whitespace or replacing text inside sentences. Unknown inputs (including empty
+strings) pass through unchanged. Multiple emoticon spellings can map to the same
+emoji; reverse conversion returns the preferred spelling below.
+
+| Preferred emoticon | Emoji | Other accepted spellings |
+|--------------------|-------|--------------------------|
+| `:)` | 🙂 | `:-)` |
+| `:(` | 🙁 | `:-(` |
+| `:D` | 😃 | `:-D`, `:d`, `:-d` |
+| `;)` | 😉 | `;-)` |
+| `XD` | 😆 | `xD` |
+| `:P` | 😛 | `:-P`, `:p`, `:-p` |
+| `:O` | 😮 | `:-O`, `:o`, `:-o` |
+| `:/` | 😕 | `:-/`, `:\`, `:-\` |
+| `:\|` | 😐 | `:-\|` |
+| `:'(` | 😢 | `:'-(` |
+| `>:(` | 😠 | `>:-(` |
+| `:*` | 😘 | `:-*` |
+| `B)` | 😎 | `B-)`, `8)`, `8-)` |
+| `<3` | ❤️ | — |
+| `</3` | 💔 | — |
+
+Every conversion result has an `EmojiName` label. Conversion does not change the
+default palettes or automatically rewrite search input.
+
 ## TUI Emoji Compatibility & Box-Sizing
 
 Emojis are generally 2 columns wide in terminal user interfaces. However, some emojis (such as those containing the variation selector `\ufe0f`, e.g., `⚠️` or `🌧️`) report a width of **2** columns under standard Go string-width libraries (like Lip Gloss / `uniseg`), but render as only **1** column wide on standard terminal emulators.
@@ -195,5 +266,63 @@ This comment was inserted by a human.  Except it wasn't, but then it was reviewe
 
 [MIT License](./LICENSE.txt) — Copyright (c) 2026 [Neomantra Corp](https://www.neomantra.com).
 
+Unicode CLDR data and generated metadata tables are separately covered by
+[Unicode License v3](third_party/unicode/LICENSE.txt). Include the
+[Unicode notice](third_party/unicode/NOTICE.txt) and license when distributing
+those tables or applications embedding them. The browser demo build includes both.
+
 ----
 Made with :heart: and :fire: by the team behind [Nimble Terminal](https://nimbleterminal.dev).
+
+## Descriptive views and accessibility state
+
+The preview follows the focused emoji or category, independently of the confirmed
+selection. Names come from the English CLDR data. Enable a labeled result list:
+
+```go
+picker := ntemoji.New(
+    ntemoji.WithListMode(true),
+    ntemoji.WithShowSearch(true),
+)
+```
+
+List mode shows one result per row with its name and a `>` focus marker. Categories
+use text labels (`>` for focus, `*` for the active category when another section
+has focus). Presets stay compact; their focused item has a `>` marker and its name
+in the preview. Up/down or j/k move through results; left/right or h/l move through
+categories and presets. Tab and Shift+Tab switch sections. Enter confirms.
+Long labels are clipped to the available width; state snapshots retain full names.
+
+Read `picker.AccessibilityState()` after updating the model. It includes focus,
+the focused name and glyph, one-based position and section count, category, query,
+result count, and the initial or last confirmed selection. An absent item has
+position zero. Search has no item position or section count; use `ResultCount`.
+During cross-category search, an emoji's category is its first matching palette.
+Unknown emoji names fall back to the original glyph.
+
+```go
+before := picker.AccessibilityState()
+updated, cmd := picker.Update(msg)
+picker = updated.(ntemoji.Model)
+after := picker.AccessibilityState()
+if after != before {
+    // Feed relevant changes to your host's status or accessibility adapter.
+    // after.FocusedName describes navigation; after.SelectedName describes value.
+}
+// Return cmd from your host's Update so picker messages are delivered.
+```
+
+`swatch.AccessibilityState()` includes the label passed to `NewSwatchPicker`, the
+current emoji and name, focus and expanded flags, and the picker snapshot while
+open (zero-valued while closed).
+
+Try the list and snapshot integration in the simple example:
+
+```sh
+NTEMOJI_LIST=1 go run ./examples/simple
+```
+
+The example also publishes focused names in its browser action status. These APIs
+supply information for host adapters; they do not create semantic browser controls
+or send screen-reader announcements. VoiceOver/NVDA integration and testing remain
+separate work. The default view remains the compact emoji grid.

@@ -1,0 +1,15 @@
+This product includes English annotation data from Unicode CLDR 48.2
+(release-48-2), including tables generated from that data.
+
+Annotation data: Copyright © 1991-2025 Unicode, Inc.
+CLDR distribution: Copyright © 2004-2026 Unicode, Inc.
+SPDX-License-Identifier: Unicode-3.0
+
+The accompanying LICENSE.txt is the unmodified license from that release.
+Include this notice and LICENSE.txt with redistributed data or associated
+documentation, including distributions embedding the generated Go tables.
+
+Sources:
+https://github.com/unicode-org/cldr/blob/release-48-2/common/annotations/en.xml
+https://github.com/unicode-org/cldr/blob/release-48-2/common/annotationsDerived/en.xml
+https://github.com/unicode-org/cldr/blob/release-48-2/LICENSE
