@@ -97,3 +97,48 @@ func TestPickerFitsHeightAndKeepsGridSize(t *testing.T) {
 		t.Fatal("resizing to rendered dimensions changed grid dimensions")
 	}
 }
+
+func TestSwatchFitsTerminalWithCustomFrame(t *testing.T) {
+	for _, custom := range []bool{false, true} {
+		s := NewSwatchPicker("😀", "test")
+		opts := []Option{WithPresets([]string{"😀"}), WithShowSearch(true)}
+		if custom {
+			opts = append(opts, WithStyle(lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(2, 4)))
+		}
+		s.SetPickerOptions(opts...)
+		s.SetBounds(0, 0, 4, 1)
+		s, _ = s.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+		s, _ = s.Update(tea.MouseClickMsg{X: 1, Y: 0, Button: tea.MouseLeft})
+		for _, size := range []tea.WindowSizeMsg{{Width: 80, Height: 24}, {Width: 60, Height: 23}, {Width: 100, Height: 30}} {
+			s, _ = s.Update(size)
+			w, h := s.picker.ViewSize()
+			if w > size.Width || h > size.Height {
+				t.Fatalf("custom=%v: %dx%d exceeds %dx%d", custom, w, h, size.Width, size.Height)
+			}
+			if s.lastModalW != w || s.lastOverlayHeight != h {
+				t.Fatal("stale modal bounds")
+			}
+		}
+	}
+}
+
+func TestOverlayZoneBounds(t *testing.T) {
+	zm := zone.New()
+	defer zm.Close()
+	marked := zm.Mark("outer", "a"+zm.Mark("inner", "bc")+"d")
+	got := OverlayView("..........", marked, 10, 1, 0, 3)
+	if strings.Count(got, "z") != strings.Count(marked, "z") {
+		t.Fatalf("zone markers replayed: %q", got)
+	}
+	zm.Scan(got)
+	deadline := time.Now().Add(time.Second)
+	for zm.Get("outer") == nil && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	for id, want := range map[string][2]int{"outer": {3, 6}, "inner": {4, 5}} {
+		z := zm.Get(id)
+		if z == nil || z.StartX != want[0] || z.EndX != want[1] {
+			t.Fatalf("%s bounds: %#v, want %v", id, z, want)
+		}
+	}
+}

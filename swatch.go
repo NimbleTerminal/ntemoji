@@ -130,8 +130,14 @@ func (s *SwatchPicker) Emoji() string {
 
 // ViewWithOverlay renders the overlay modal on top of mainView when the picker is open.
 func (s *SwatchPicker) ViewWithOverlay(mainView string, viewWidth, viewHeight int) string {
+	s.lastViewWidth = viewWidth
+	s.lastViewHeight = viewHeight
 	if !s.open {
 		return mainView
+	}
+	if s.picker.Width != viewWidth || s.picker.Height != viewHeight {
+		updated, _ := s.picker.Update(tea.WindowSizeMsg{Width: viewWidth, Height: viewHeight})
+		s.picker = updated.(Model)
 	}
 	modalContent := s.picker.View().Content
 	modalW, overlayHeight := ModalCellSize(modalContent)
@@ -155,9 +161,9 @@ func (s *SwatchPicker) Update(msg tea.Msg) (*SwatchPicker, tea.Cmd) {
 		s.lastViewWidth = m.Width
 		s.lastViewHeight = m.Height
 		if s.open {
-			pickerW, pickerH := s.picker.ViewSize()
-			picker, cmd := s.picker.Update(tea.WindowSizeMsg{Width: pickerW, Height: pickerH})
+			picker, cmd := s.picker.Update(m)
 			s.picker = picker.(Model)
+			s.lastModalW, s.lastOverlayHeight = s.picker.ViewSize()
 			if s.lastOverlayHeight > 0 && s.lastModalW > 0 {
 				centerRow := s.row + s.h/2
 				centerCol := s.col + s.w/2
@@ -233,8 +239,7 @@ func (s *SwatchPicker) Update(msg tea.Msg) (*SwatchPicker, tea.Cmd) {
 			if inBounds {
 				next := *s
 				next.picker = next.newPickerModel()
-				pickerW, pickerH := next.picker.ViewSize()
-				picker, cmd := next.picker.Update(tea.WindowSizeMsg{Width: pickerW, Height: pickerH})
+				picker, cmd := next.picker.Update(tea.WindowSizeMsg{Width: next.lastViewWidth, Height: next.lastViewHeight})
 				next.picker = picker.(Model)
 				next.open = true
 				next.ignoreNextRelease = true

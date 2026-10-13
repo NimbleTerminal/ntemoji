@@ -261,6 +261,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		if msg.Width <= 0 || msg.Height <= 0 {
+			return m, nil
+		}
 		// Preserve the selected emoji when the terminal changes the column count.
 		cols := m.GridCols
 		if cols <= 0 {
@@ -269,25 +272,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		selectedIndex := m.GridCursorY*cols + m.GridCursorX
 		m.Width = msg.Width
 		m.Height = msg.Height
-		contentW := max(msg.Width-8, 16)
-		m.GridCols = contentW / 4
-		if m.GridCols < 4 {
-			m.GridCols = 4
+		// Measure the rendered chrome, including custom frame padding and
+		// wrapped sections, rather than duplicating View's layout arithmetic.
+		measure := m
+		measure.zm = nil
+		measure.GridCols, measure.GridRows = 12, 1
+		for measure.GridCols > 1 {
+			w, _ := measure.ViewSize()
+			if w <= msg.Width {
+				break
+			}
+			measure.GridCols--
 		}
-		if m.GridCols > 12 {
-			m.GridCols = 12
+		measure.GridRows = 8
+		for measure.GridRows > 1 {
+			_, h := measure.ViewSize()
+			if h <= msg.Height {
+				break
+			}
+			measure.GridRows--
 		}
-
-		// Header, categories, grid border, help and frame take 12 lines.
-		// Each optional section takes three; grid rows use a two-line pitch.
-		availH := msg.Height - 12
-		if len(m.Presets) > 0 {
-			availH -= 3
-		}
-		if m.ShowSearch {
-			availH -= 3
-		}
-		m.GridRows = max(1, min(8, (availH+1)/2))
+		m.GridCols, m.GridRows = measure.GridCols, measure.GridRows
 
 		m.GridCursorX = selectedIndex % m.GridCols
 		m.GridCursorY = selectedIndex / m.GridCols

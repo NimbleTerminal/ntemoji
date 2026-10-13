@@ -7,14 +7,17 @@ import (
 )
 
 type overlayCell struct {
-	Char  string
-	Width int
-	Style string
+	Char   string
+	Width  int
+	Style  string
+	Prefix string
+	Suffix string
 }
 
 func parseOverlayLine(line string) []overlayCell {
 	var cells []overlayCell
 	activeStyle := ""
+	pending := ""
 	var state byte
 	for len(line) > 0 {
 		cluster, width, n, next := ansi.DecodeSequence(line, state, nil)
@@ -26,29 +29,33 @@ func parseOverlayLine(line string) []overlayCell {
 		}
 		line, state = line[n:], next
 		if width == 0 {
-			if strings.HasPrefix(cluster, "\x1b") || strings.HasPrefix(cluster, "\x9b") || strings.HasPrefix(cluster, "\x9d") {
+			// Only SGR changes persistent style. Zone markers and other
+			// controls belong to this boundary and must never be replayed.
+			if (strings.HasPrefix(cluster, "\x1b[") || strings.HasPrefix(cluster, "\x9b")) && strings.HasSuffix(cluster, "m") {
 				if cluster == "\x1b[0m" || cluster == "\x1b[m" {
 					activeStyle = ""
 				} else {
 					activeStyle += cluster
 				}
 			} else {
-				// Attach zero-width text to the leading cell, never its placeholder.
-				for i := len(cells) - 1; i >= 0; i-- {
-					if cells[i].Width > 0 {
-						cells[i].Char += cluster
-						break
-					}
-				}
+				pending += cluster
 			}
 			continue
 		}
-		cells = append(cells, overlayCell{Char: cluster, Width: width, Style: activeStyle})
+		cells = append(cells, overlayCell{Char: cluster, Width: width, Style: activeStyle, Prefix: pending})
+		pending = ""
 		for i := 1; i < width; i++ {
 			cells = append(cells, overlayCell{Style: activeStyle})
 		}
 	}
 
+	if pending != "" {
+		if len(cells) == 0 {
+			cells = append(cells, overlayCell{Prefix: pending})
+		} else {
+			cells[len(cells)-1].Suffix = pending
+		}
+	}
 	return cells
 }
 
@@ -57,10 +64,7 @@ func renderOverlayCells(cells []overlayCell) string {
 	lastStyle := ""
 
 	for _, c := range cells {
-		if c.Char == "" && c.Width == 0 {
-			continue
-		}
-
+		sb.WriteString(c.Prefix)
 		if c.Style != lastStyle {
 			if lastStyle != "" {
 				sb.WriteString("\x1b[0m")
@@ -71,6 +75,7 @@ func renderOverlayCells(cells []overlayCell) string {
 			lastStyle = c.Style
 		}
 		sb.WriteString(c.Char)
+		sb.WriteString(c.Suffix)
 	}
 
 	if lastStyle != "" {
@@ -87,7 +92,10 @@ func ModalCellSize(s string) (width, height int) {
 	w := 0
 	for _, l := range lines {
 		cells := parseOverlayLine(l)
-		lw := len(cells)
+		lw := 0
+		for _, cell := range cells {
+			lw += cell.Width
+		}
 		if lw > w {
 			w = lw
 		}
@@ -139,7 +147,11 @@ func OverlayView(bgView, modalView string, bgW, bgH, top, left int) string {
 				}
 			}
 
-			bgCells[targetIdx] = fgCell
+			if len(fgCells) == 1 && fgCell.Width == 0 {
+				bgCells[targetIdx].Prefix = fgCell.Prefix + fgCell.Suffix + bgCells[targetIdx].Prefix
+			} else {
+				bgCells[targetIdx] = fgCell
+			}
 		}
 
 		bgLines[y] = renderOverlayCells(bgCells)

@@ -48,3 +48,15 @@ func TestOverlayPreservesANSIWithGraphemes(t *testing.T) {
 		t.Fatalf("lost content or styling: %q", got)
 	}
 }
+
+func TestOverlayPreservesZeroWidthText(t *testing.T) {
+	for _, value := range []string{"\u200d", "\ufe0f", "\u200dA", "\ufe0fA"} {
+		if got := renderOverlayCells(parseOverlayLine(value)); got != value {
+			t.Errorf("round trip %q = %q", value, got)
+		}
+		w, _ := ModalCellSize(value)
+		if w != lipgloss.Width(value) {
+			t.Errorf("width %q = %d", value, w)
+		}
+	}
+}
