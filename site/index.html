@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Try ntemoji's interactive emoji picker and popup swatches in your browser. Bubble Tea widgets from Nimble Terminal.">
+  <meta name="description" content="Try emoji pickers, swatches, and multilingual Demoji and Remoji text conversion in your browser. Bubble Tea widgets from Nimble Terminal.">
   <title>ntemoji — Nimble Terminal demos</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -18,8 +18,8 @@
   <main>
     <section class="intro">
       <p class="eyebrow">THE PLAYGROUND</p>
-      <h1>A little more expression<br>for your terminal<span>.</span></h1>
-      <p>Emoji pickers and popup swatches for Bubble Tea.<br>Try the real Go examples, right here in your browser.</p>
+      <h1>A little more expression for your terminal<span>.</span></h1>
+      <p>Emoji pickers, swatches, and multilingual text conversion for Bubble Tea. Try the real Go examples, right here in your browser.</p>
     </section>
     <div class="workspace">
       <aside>
@@ -27,11 +27,13 @@
         <nav class="demo-nav" aria-label="Examples">
           <a href="?demo=simple" data-demo="simple"><span class="demo-icon" aria-hidden="true">✳</span><span><strong>Emoji picker</strong><small>Search, browse, and select</small></span><span aria-hidden="true">↗</span></a>
           <a href="?demo=swatch" data-demo="swatch" aria-current="page"><span class="demo-icon" aria-hidden="true">▦</span><span><strong>Swatch grid</strong><small>Four buttons, endless choices</small></span><span aria-hidden="true">↗</span></a>
+          <a href="?demo=demoji" data-demo="demoji"><span class="demo-icon" aria-hidden="true">Aa</span><span><strong>Demoji</strong><small>Emoji to descriptive words</small></span><span aria-hidden="true">↗</span></a>
+          <a href="?demo=remoji" data-demo="remoji"><span class="demo-icon" aria-hidden="true">☺</span><span><strong>Remoji</strong><small>Descriptive names to emoji</small></span><span aria-hidden="true">↗</span></a>
         </nav>
         <div class="instructions">
           <h2>Make it yours</h2>
           <p id="description">Click a swatch, or press 1–4, to open its picker. Choose an emoji and see the button update.</p>
-          <dl>
+          <dl id="keyboard-help">
             <div><dt><kbd>Tab</kbd></dt><dd>Move between sections</dd></div>
             <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Browse emojis</dd></div>
             <div><dt><kbd>Enter</kbd></dt><dd>Select an emoji</dd></div>
@@ -46,9 +48,25 @@
           <div><span class="status-dot" aria-hidden="true"></span><h2 id="demo-title">Swatch grid</h2></div>
           <button id="restart" type="button">↻ Restart demo</button>
         </div>
+        <section id="converter" hidden aria-label="Text conversion">
+          <fieldset id="converter-fields" disabled>
+            <legend class="sr-only">Conversion settings and text</legend>
+            <div class="converter-settings">
+              <div><label for="language">Language</label><select id="language"></select></div>
+              <div><label for="format">Name delimiters</label><select id="format"><option value="plain">Plain names</option><option value="colons">:name:</option><option value="brackets">[name]</option><option value="custom">Custom</option></select></div>
+              <div id="custom-delimiters" hidden><label for="opening">Opening</label><input id="opening" maxlength="32" value="["><label for="closing">Closing</label><input id="closing" maxlength="32" value="]"></div>
+            </div>
+            <p id="converter-hint" class="converter-hint">Text stays on this device. Language changes preserve your input.</p>
+            <div class="text-panels">
+              <div class="text-panel"><div class="text-panel-heading"><label for="source-text">Input</label><div><button id="sample" type="button">Load example</button><button id="clear-text" type="button">Clear</button></div></div><textarea id="source-text" maxlength="100000" spellcheck="false" aria-describedby="converter-hint" placeholder="Type or paste text here…"></textarea></div>
+              <div class="text-panel"><div class="text-panel-heading"><label for="result-text">Output</label><button id="copy-result" type="button" disabled>Copy output</button></div><textarea id="result-text" readonly spellcheck="false" aria-label="Converted output"></textarea></div>
+            </div>
+          </fieldset>
+          <p class="converter-note">Names come from Unicode CLDR. Missing translations fall back to English. Unknown or ambiguous names stay unchanged in Remoji.</p>
+        </section>
         <div id="controls" aria-label="Demo controls"></div>
         <div class="terminal-scroll"><div id="terminal" aria-label="Interactive emoji demo"></div></div>
-        <div class="statusbar"><p id="status" role="status">Loading demo…</p><span>Go + Bubble Tea</span></div>
+        <div class="statusbar"><p id="status" role="status">Loading demo…</p><span id="runtime-label">Go + Bubble Tea</span></div>
         <noscript><p class="error">Enable JavaScript to run the interactive demos.</p></noscript>
       </section>
     </div>
@@ -58,7 +76,6 @@
     </section>
   </main>
   <footer><a href="https://nimbleterminal.dev">Made by Nimble Terminal</a><span>Powered by <a href="https://github.com/NimbleMarkets/go-booba">go-booba</a> · Runs locally in your browser · <a href="third_party/unicode/LICENSE.txt">Unicode data license</a> · <a href="third_party/unicode/NOTICE.txt">Attribution</a></span></footer>
-  <script src="wasm_exec.js"></script>
   <script type="module" src="demo.js"></script>
 </body>
 </html>

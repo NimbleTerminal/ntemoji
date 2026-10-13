@@ -116,6 +116,7 @@ tasks:
     generates:
       - web/demos/simple.wasm
       - web/demos/swatch.wasm
+      - web/demos/convert.wasm
       - web/index.html
 
   serve-wasm-site:
@@ -134,4 +135,4 @@ tasks:
     desc: 'Remove WASM demo site artifacts'
     cmds:
       - rm -rf web/booba web/ghostty-web web/_assets web/demos web/third_party
-      - rm -f web/wasm_exec.js web/app.wasm web/index.html web/style.css web/demo.js
+      - rm -f web/wasm_exec.js web/app.wasm web/index.html web/style.css web/demo.js web/converter.js web/convert-worker.js

@@ -460,3 +460,23 @@ conversion. `--help` lists options. `--version` prints the version.
 Exit codes are 0 for success/help, 2 for invalid usage, and 1 for I/O/conversion
 errors. Streams may contain partial output on error. Neither tool adds a newline.
 Run without installing via `go run ./cmd/demoji` or `go run ./cmd/remoji`.
+
+## Browser text-conversion demos
+
+The dedicated [Demoji](https://nimbleterminal.github.io/ntemoji/?demo=demoji) and
+[Remoji](https://nimbleterminal.github.io/ntemoji/?demo=remoji) pages use native web
+controls: multiline input, language selection, plain/colon/bracket/custom
+delimiters, localized examples, and copyable output. Language and delimiter
+changes preserve input. Load example replaces it with text for the current
+settings. `?demo=remoji&lang=fr` opens the French demo. Both directions offer a
+Plain names option; Remoji keeps colons as its default.
+
+The conversion engine is the actual Go library, compiled through
+`cmd/emojiwasm` and loaded by `site/convert-worker.js` in a Web Worker. Conversion
+stays on the device; input text is not uploaded or stored. The UI limits input to
+100,000 UTF-16 code units and ignores stale responses during edits. Output is a
+read-only textarea with a Copy button and standard browser selection shortcuts.
+The picker and swatch examples continue to use their Bubble Tea terminal UI.
+
+Build with `task build-wasm-site`, or preview with `task serve-wasm-site`.
+The build produces `demos/convert.wasm` alongside the picker and swatch modules.
