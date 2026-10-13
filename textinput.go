@@ -166,8 +166,11 @@ func (t TextInput) View() string {
 		return ""
 	}
 	promptWidth := t.width
-	if t.focused && t.cursor < len(t.value) {
-		_, width := ansi.FirstGraphemeCluster(string(t.value[t.cursor:]), ansi.GraphemeWidth)
+	if t.focused {
+		width := 1 // Reserve the end cursor even for an empty value.
+		if t.cursor < len(t.value) {
+			_, width = ansi.FirstGraphemeCluster(string(t.value[t.cursor:]), ansi.GraphemeWidth)
+		}
 		// Give the cursor grapheme priority over the prompt in narrow inputs.
 		promptWidth = max(0, t.width-width)
 	}

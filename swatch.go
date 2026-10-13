@@ -155,7 +155,7 @@ func (s *SwatchPicker) Emoji() string {
 }
 
 // ViewWithOverlay renders the overlay modal on top of mainView when the picker is open.
-// Forward WindowSizeMsg through Update with the same dimensions before rendering.
+// WindowSizeMsg controls picker size; rendering records the actual hit rectangle.
 func (s *SwatchPicker) ViewWithOverlay(mainView string, viewWidth, viewHeight int) string {
 	if !s.open {
 		return mainView
@@ -166,6 +166,9 @@ func (s *SwatchPicker) ViewWithOverlay(mainView string, viewWidth, viewHeight in
 	centerCol := s.col + s.w/2
 	topPad, leftPad := Fixed(centerRow-overlayHeight/2, centerCol-modalW/2).
 		ClampedOrigin(modalW, overlayHeight, viewWidth, viewHeight)
+	s.lastOverlayTop, s.lastOverlayLeft = topPad, leftPad
+	s.lastModalW = min(modalW, max(0, viewWidth-leftPad))
+	s.lastOverlayHeight = min(overlayHeight, max(0, viewHeight-topPad))
 	return OverlayView(mainView, modalContent, viewWidth, viewHeight, topPad, leftPad)
 }
 

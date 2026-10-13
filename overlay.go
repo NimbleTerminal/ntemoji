@@ -1,10 +1,13 @@
 package ntemoji
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
 )
+
+var overlayZoneMarker = regexp.MustCompile(`\x1b\[[0-9]+z`)
 
 type overlayCell struct {
 	Char   string
@@ -103,10 +106,102 @@ func ModalCellSize(s string) (width, height int) {
 	return w, h
 }
 
-// OverlayView overlays the modalView content on top of the bgView at coordinates (top, left).
+// clipOverlay clips text and bubblezone rectangles to a viewport. Zone markers
+// describe rectangles across lines, so truncating each line independently would
+// lose endpoints or create inverted hit bounds at a wrapped/clipped edge.
+func clipOverlay(content string, left, top, width, height int) string {
+	if width <= 0 || height <= 0 {
+		return ""
+	}
+	type point struct{ x, y int }
+	type markedRect struct {
+		marker     string
+		start, end point
+	}
+	lines := strings.Split(content, "\n")
+	if top >= len(lines) {
+		return ""
+	}
+	parsed := make([][]overlayCell, len(lines))
+	starts := make(map[string]point)
+	var zones []markedRect
+	stripMarkers := func(text string, at point) string {
+		return overlayZoneMarker.ReplaceAllStringFunc(text, func(marker string) string {
+			if start, ok := starts[marker]; ok {
+				zones = append(zones, markedRect{marker, start, at})
+				delete(starts, marker)
+			} else {
+				starts[marker] = at
+			}
+			return ""
+		})
+	}
+	for y, line := range lines {
+		parsed[y] = parseOverlayLine(line)
+		for x := range parsed[y] {
+			cell := &parsed[y][x]
+			cell.Prefix = stripMarkers(cell.Prefix, point{x, y})
+			end := x + max(1, cell.Width)
+			if len(parsed[y]) == 1 && cell.Width == 0 {
+				end = x
+			}
+			cell.Suffix = stripMarkers(cell.Suffix, point{end, y})
+		}
+	}
+	bottom := min(len(lines), top+height)
+	visible := make([][]overlayCell, bottom-top)
+	for y := top; y < bottom; y++ {
+		cells := parsed[y]
+		start, end := min(left, len(cells)), min(left+width, len(cells))
+		row := append([]overlayCell(nil), cells[start:end]...)
+		for x := range row {
+			// A clipped wide grapheme occupies blanks, never half a glyph.
+			if (x == 0 && start > 0 && row[x].Width == 0) || x+row[x].Width > len(row) {
+				row[x].Char, row[x].Width = " ", 1
+			}
+		}
+		visible[y-top] = row
+	}
+	markers := make(map[point]string)
+	for _, z := range zones {
+		x1, x2 := max(left, z.start.x), min(left+width, z.end.x)
+		y1, y2 := max(top, z.start.y), min(bottom-1, z.end.y)
+		if x1 >= x2 || y1 > y2 {
+			continue
+		}
+		markers[point{x1 - left, y1 - top}] += z.marker
+		markers[point{x2 - left, y2 - top}] += z.marker
+	}
+	result := make([]string, len(visible))
+	for y, row := range visible {
+		// Pad only as far as a surviving zone endpoint requires.
+		end := len(row)
+		for at := range markers {
+			if at.y == y {
+				end = max(end, at.x)
+			}
+		}
+		for len(row) < end {
+			row = append(row, overlayCell{Char: " ", Width: 1})
+		}
+		for x := range row {
+			row[x].Prefix = markers[point{x, y}] + row[x].Prefix
+		}
+		result[y] = renderOverlayCells(row) + markers[point{len(row), y}]
+	}
+	return strings.Join(result, "\n")
+}
+
+// OverlayView overlays the modalView content at (top, left), clipping both
+// layers and their mouse zones to the bgW by bgH viewport.
 func OverlayView(bgView, modalView string, bgW, bgH, top, left int) string {
-	bgLines := strings.Split(bgView, "\n")
-	fgLines := strings.Split(modalView, "\n")
+	if bgW <= 0 || bgH <= 0 {
+		return ""
+	}
+	bgLines := strings.Split(clipOverlay(bgView, 0, 0, bgW, bgH), "\n")
+	foreground := clipOverlay(modalView, max(0, -left), max(0, -top), bgW-max(0, left), bgH-max(0, top))
+	fgLines := strings.Split(foreground, "\n")
+	top, left = max(0, top), max(0, left)
 
 	for len(bgLines) < bgH {
 		bgLines = append(bgLines, "")

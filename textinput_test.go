@@ -166,3 +166,19 @@ func TestNarrowInputKeepsCursorGraphemeVisible(t *testing.T) {
 		t.Fatal("render changed input")
 	}
 }
+
+func TestNarrowInputReservesEndCursor(t *testing.T) {
+	for _, value := range []string{"", "abc"} {
+		input := NewTextInput()
+		input.Prompt = "🔍 "
+		input.SetValue(value)
+		input.Focus()
+		input.SetWidth(3)
+		// A visible cursor marker makes reserved space observable without relying
+		// on terminal color detection. The final viewport must still be bounded.
+		input.CursorStyle = lipgloss.NewStyle().Transform(func(string) string { return "|" })
+		if got := ansi.Strip(input.View()); got != "🔍|" {
+			t.Fatalf("value %q: end cursor missing: %q", value, got)
+		}
+	}
+}

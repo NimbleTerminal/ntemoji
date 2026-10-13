@@ -98,16 +98,14 @@ func TestSwatchPickerConfirmSelection(t *testing.T) {
 	}
 }
 
-func TestSwatchViewDoesNotResizeOrChangeBounds(t *testing.T) {
+func TestSwatchViewDoesNotResizePicker(t *testing.T) {
 	s := NewSwatchPicker("😀", "test")
 	s.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
 	s.OpenPicker()
 	before := *s
 	s.ViewWithOverlay("background", 40, 20)
 	if s.picker.Width != before.picker.Width || s.picker.Height != before.picker.Height ||
-		s.lastViewWidth != before.lastViewWidth || s.lastViewHeight != before.lastViewHeight ||
-		s.lastModalW != before.lastModalW || s.lastOverlayHeight != before.lastOverlayHeight ||
-		s.lastOverlayLeft != before.lastOverlayLeft || s.lastOverlayTop != before.lastOverlayTop {
+		s.lastViewWidth != before.lastViewWidth || s.lastViewHeight != before.lastViewHeight {
 		t.Fatal("render changed layout state")
 	}
 }

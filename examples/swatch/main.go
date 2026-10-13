@@ -65,7 +65,7 @@ func newApp() *appModel {
 	sw, sh := a.swatches[0].Size()
 	for i, s := range a.swatches {
 		s.SetBounds(2+i/2, labelLen+(i%2)*(sw+gap+labelLen), sw, sh)
-		s.Update(tea.WindowSizeMsg{Width: a.width, Height: a.height})
+		a.swatches[i], _ = s.Update(tea.WindowSizeMsg{Width: a.width, Height: a.height})
 	}
 	return a
 }

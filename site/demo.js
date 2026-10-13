@@ -54,7 +54,10 @@ async function main() {
     parent: document.querySelector('#controls'),
     openKeyboard: () => terminal.focus(),
   });
-  terminal.onActionError = fail;
+  terminal.onActionError = error => {
+    setStatus('Could not send that action · Try again or use the keyboard', 'error');
+    console.error(error);
+  };
   terminal.onStatusChange = (state, message) => {
     if (failed) return;
     if (state === 'connected') setStatus('Ready · Click the terminal to start', 'ready');

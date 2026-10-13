@@ -142,3 +142,67 @@ func TestOverlayZoneBounds(t *testing.T) {
 		}
 	}
 }
+
+func TestResizeMatchesRenderedFit(t *testing.T) {
+	for _, style := range []lipgloss.Style{lipgloss.NewStyle().Padding(2, 4), lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2), lipgloss.NewStyle().Width(60).Height(26), lipgloss.NewStyle().MaxWidth(30).MaxHeight(24)} {
+		for _, size := range []tea.WindowSizeMsg{{Width: 20, Height: 24}, {Width: 40, Height: 24}, {Width: 80, Height: 30}} {
+			picker := New(WithStyle(style), WithPresets([]string{"😀", "👍", "🔥", "✅", "❌", "🚨"}), WithShowSearch(true))
+			updated, _ := picker.Update(size)
+			got := updated.(Model)
+			want := picker
+			want.GridCols, want.GridRows = 12, 1
+			for want.GridCols > 1 {
+				w, _ := want.ViewSize()
+				if w <= size.Width {
+					break
+				}
+				want.GridCols--
+			}
+			want.GridRows = 8
+			for want.GridRows > 1 {
+				_, h := want.ViewSize()
+				if h <= size.Height {
+					break
+				}
+				want.GridRows--
+			}
+			if got.GridCols != want.GridCols || got.GridRows != want.GridRows {
+				t.Fatalf("%v: got %dx%d grid, want %dx%d", size, got.GridCols, got.GridRows, want.GridCols, want.GridRows)
+			}
+		}
+	}
+}
+
+func TestSwatchHitBoundsFollowRenderedOrigin(t *testing.T) {
+	zm := zone.New()
+	defer zm.Close()
+	s := NewSwatchPicker("😀", "test")
+	s.SetZoneManager(zm)
+	s.SetBounds(35, 110, 4, 1)
+	s, _ = s.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+	s.OpenPicker()
+	oldLeft := s.lastOverlayLeft
+	zm.Scan(s.ViewWithOverlay(strings.Repeat(strings.Repeat(" ", 80)+"\n", 29), 80, 30))
+	if s.lastOverlayLeft == oldLeft {
+		t.Fatal("render did not update hit origin")
+	}
+	deadline := time.Now().Add(time.Second)
+	for zm.Get(ZoneGrid) == nil && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	grid := zm.Get(ZoneGrid)
+	if grid == nil {
+		t.Fatal("missing rendered grid zone")
+	}
+	s, cmd := s.Update(tea.MouseClickMsg{X: grid.StartX + 1, Y: grid.StartY, Button: tea.MouseLeft})
+	if !s.Open() || cmd != nil {
+		t.Fatal("click on visible modal canceled it")
+	}
+	_, cmd = s.Update(tea.MouseReleaseMsg{X: grid.StartX + 1, Y: grid.StartY, Button: tea.MouseLeft})
+	if cmd == nil {
+		t.Fatal("visible emoji click did not select")
+	}
+	if _, ok := cmd().(EmojiChangedMsg); !ok {
+		t.Fatal("expected emoji selection")
+	}
+}

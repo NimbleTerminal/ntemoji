@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+ * Keep wrapped category tabs clickable and clip overlays, graphemes, and mouse zones to the supplied viewport.
+
+ * Keep the scrolled grid stable during mouse selection and align wrapped preset rows with their mouse targets.
+
+ * Keep modal mouse bounds aligned with the actual rendered position when view and window sizes differ.
+ * Reserve narrow input space for end cursors and let demos finish normally after action errors.
+ * Share grid dimension defaults and reduce unconstrained resize fitting to two measurements.
+
  * Add `SwatchPicker.OpenPicker` for keyboard activation without dropping the first mouse selection.
  * Keep swatch rendering free of layout mutations and forward terminal resize events to every example swatch.
  * Correct gear and desktop constants and gear/wrench search tags.
