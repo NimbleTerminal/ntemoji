@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+ * Add `SwatchPicker.OpenPicker` for keyboard activation without dropping the first mouse selection.
+ * Keep swatch rendering free of layout mutations and forward terminal resize events to every example swatch.
+ * Correct gear and desktop constants and gear/wrench search tags.
+ * Check Go formatting in CI, document the package, and remove unused helpers and obsolete VHS tasks.
+
  * Preserve overlay zone markers and leading zero-width text without replaying them as styles.
  * Size swatch modals against the available terminal using measured layout, including custom frames.
  * Keep cursor graphemes visible in narrow searches and render text styles per run.

@@ -15,3 +15,6 @@ web/
 
 # Local CLI state
 .antigravitycli/
+
+# Local experiments
+scratch/

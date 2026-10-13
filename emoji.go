@@ -2,6 +2,7 @@ package ntemoji
 
 import (
 	"image/color"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 )
@@ -120,7 +121,7 @@ type Theme struct {
 	UnselectedCellStyle        lipgloss.Style
 
 	// Preset cell styling
-	SelectedPresetStyle  lipgloss.Style
+	SelectedPresetStyle   lipgloss.Style
 	UnselectedPresetStyle lipgloss.Style
 
 	// Search text input styling
@@ -239,8 +240,8 @@ func MatchEmoji(emoji, query string) bool {
 	if query == "" {
 		return true
 	}
-	importStr := stringsToLower(query)
-	if stringsContains(emoji, importStr) {
+	importStr := strings.ToLower(query)
+	if strings.Contains(emoji, importStr) {
 		return true
 	}
 	tags, ok := EmojiTags[emoji]
@@ -248,106 +249,70 @@ func MatchEmoji(emoji, query string) bool {
 		return false
 	}
 	for _, t := range tags {
-		if stringsContains(t, importStr) {
+		if strings.Contains(t, importStr) {
 			return true
 		}
 	}
 	return false
-}
-
-// Helper wrappers to avoid importing strings everywhere if we can just do it here
-func stringsToLower(s string) string {
-	return stringsMap(s)
-}
-
-func stringsContains(s, substr string) bool {
-	// Simple sub-string match
-	lenSub := len(substr)
-	if lenSub == 0 {
-		return true
-	}
-	lenS := len(s)
-	if lenS < lenSub {
-		return false
-	}
-	for i := 0; i <= lenS-lenSub; i++ {
-		if s[i:i+lenSub] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func stringsMap(s string) string {
-	// A basic ASCII lower case converter to avoid dependencies
-	b := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			b[i] = c + 32
-		} else {
-			b[i] = c
-		}
-	}
-	return string(b)
 }
 
 // EmojiTags maps common emojis to searchable keywords.
 var EmojiTags = map[string][]string{
 	// Smileys
-	"😀": {"smile", "happy", "face", "grinning", "laugh"},
-	"😃": {"smile", "happy", "face", "grinning", "laugh", "open"},
-	"😄": {"smile", "happy", "face", "grinning", "laugh", "eyes"},
-	"😁": {"smile", "happy", "face", "grinning", "laugh", "teeth"},
-	"😆": {"smile", "happy", "face", "grinning", "laugh", "closed"},
-	"😅": {"smile", "happy", "face", "sweat", "laugh"},
-	"😂": {"smile", "happy", "face", "tears", "joy", "laugh", "crying"},
-	"🤣": {"smile", "happy", "face", "tears", "joy", "laugh", "rofl", "floor"},
-	"😊": {"smile", "happy", "face", "blush", "nice"},
-	"😇": {"smile", "happy", "face", "angel", "halo"},
-	"🙂": {"smile", "happy", "face", "slight"},
-	"🙃": {"smile", "happy", "face", "upside", "down"},
-	"😉": {"smile", "happy", "face", "wink"},
-	"😌": {"smile", "happy", "face", "relieved", "calm"},
-	"😍": {"smile", "happy", "face", "love", "heart", "eyes"},
-	"🥰": {"smile", "happy", "face", "love", "hearts", "affection"},
-	"😘": {"smile", "happy", "face", "love", "kiss", "blowing"},
-	"🤔": {"think", "face", "pondering", "question", "hm"},
-	"👍": {"thumbs", "up", "like", "yes", "agree", "ok", "good"},
-	"👎": {"thumbs", "down", "dislike", "no", "bad", "disagree"},
-	"🤞": {"crossed", "fingers", "luck", "hope", "hand", "gesture"},
-	"🎉": {"party", "celebration", "popper", "congrats", "hooray"},
-	"🚀": {"rocket", "space", "launch", "fast", "ship"},
-	"🔥": {"fire", "hot", "burn", "lit", "flame"},
-	"💡": {"light", "bulb", "idea", "inspiration", "brain"},
-	"🌟": {"star", "shine", "sparkle", "gold"},
-	"💥": {"collision", "explosion", "boom", "bang"},
-	"💖": {"heart", "love", "red"},
-	"✅": {"check", "mark", "correct", "yes", "green", "done", "success"},
-	"❌": {"cross", "mark", "wrong", "no", "red", "fail", "error"},
-	"🚨": {"warning", "alert", "danger", "yellow", "caution"},
-	"📢": {"info", "information", "blue", "about"},
-	"🔧": {"gear", "settings", "cog", "tool", "config"},
-	"🟢": {"green", "circle", "status", "go", "dot"},
-	"🔴": {"red", "circle", "status", "stop", "dot"},
-	"🟡": {"yellow", "circle", "status", "wait", "dot"},
-	"🔵": {"blue", "circle", "status", "dot"},
-	"⏰": {"alarm", "clock", "time", "wake"},
-	"⏳": {"hourglass", "time", "wait", "loading"},
-	"📝": {"memo", "write", "note", "paper", "pencil"},
-	"💻": {"computer", "laptop", "pc", "tech", "screen"},
-	"📁": {"folder", "file", "directory", "save"},
-	"📦": {"package", "box", "delivery", "shipping"},
+	"😀":  {"smile", "happy", "face", "grinning", "laugh"},
+	"😃":  {"smile", "happy", "face", "grinning", "laugh", "open"},
+	"😄":  {"smile", "happy", "face", "grinning", "laugh", "eyes"},
+	"😁":  {"smile", "happy", "face", "grinning", "laugh", "teeth"},
+	"😆":  {"smile", "happy", "face", "grinning", "laugh", "closed"},
+	"😅":  {"smile", "happy", "face", "sweat", "laugh"},
+	"😂":  {"smile", "happy", "face", "tears", "joy", "laugh", "crying"},
+	"🤣":  {"smile", "happy", "face", "tears", "joy", "laugh", "rofl", "floor"},
+	"😊":  {"smile", "happy", "face", "blush", "nice"},
+	"😇":  {"smile", "happy", "face", "angel", "halo"},
+	"🙂":  {"smile", "happy", "face", "slight"},
+	"🙃":  {"smile", "happy", "face", "upside", "down"},
+	"😉":  {"smile", "happy", "face", "wink"},
+	"😌":  {"smile", "happy", "face", "relieved", "calm"},
+	"😍":  {"smile", "happy", "face", "love", "heart", "eyes"},
+	"🥰":  {"smile", "happy", "face", "love", "hearts", "affection"},
+	"😘":  {"smile", "happy", "face", "love", "kiss", "blowing"},
+	"🤔":  {"think", "face", "pondering", "question", "hm"},
+	"👍":  {"thumbs", "up", "like", "yes", "agree", "ok", "good"},
+	"👎":  {"thumbs", "down", "dislike", "no", "bad", "disagree"},
+	"🤞":  {"crossed", "fingers", "luck", "hope", "hand", "gesture"},
+	"🎉":  {"party", "celebration", "popper", "congrats", "hooray"},
+	"🚀":  {"rocket", "space", "launch", "fast", "ship"},
+	"🔥":  {"fire", "hot", "burn", "lit", "flame"},
+	"💡":  {"light", "bulb", "idea", "inspiration", "brain"},
+	"🌟":  {"star", "shine", "sparkle", "gold"},
+	"💥":  {"collision", "explosion", "boom", "bang"},
+	"💖":  {"heart", "love", "red"},
+	"✅":  {"check", "mark", "correct", "yes", "green", "done", "success"},
+	"❌":  {"cross", "mark", "wrong", "no", "red", "fail", "error"},
+	"🚨":  {"warning", "alert", "danger", "yellow", "caution"},
+	"📢":  {"info", "information", "blue", "about"},
+	"⚙":  {"gear", "settings", "cog", "tool", "config"},
+	"🔧":  {"wrench", "spanner", "tool", "repair", "fix"},
+	"🟢":  {"green", "circle", "status", "go", "dot"},
+	"🔴":  {"red", "circle", "status", "stop", "dot"},
+	"🟡":  {"yellow", "circle", "status", "wait", "dot"},
+	"🔵":  {"blue", "circle", "status", "dot"},
+	"⏰":  {"alarm", "clock", "time", "wake"},
+	"⏳":  {"hourglass", "time", "wait", "loading"},
+	"📝":  {"memo", "write", "note", "paper", "pencil"},
+	"💻":  {"computer", "laptop", "pc", "tech", "screen"},
+	"📁":  {"folder", "file", "directory", "save"},
+	"📦":  {"package", "box", "delivery", "shipping"},
 	"🛠️": {"tools", "hammer", "wrench", "build", "dev", "fix"},
-	"📩": {"envelope", "mail", "letter", "email"},
-	"📈": {"chart", "graph", "increase", "up", "trend"},
-	"📉": {"chart", "graph", "decrease", "down", "trend"},
-	"📊": {"chart", "graph", "bar", "stats"},
-	"🏁": {"flag", "checkered", "finish", "done"},
-	"🧰": {"toolbox", "box", "tools", "kit", "config"},
-	"🔑": {"key", "lock", "access", "secret"},
-	"🔒": {"lock", "secure", "closed", "security"},
-	"🔓": {"lock", "unlock", "open", "access"},
+	"📩":  {"envelope", "mail", "letter", "email"},
+	"📈":  {"chart", "graph", "increase", "up", "trend"},
+	"📉":  {"chart", "graph", "decrease", "down", "trend"},
+	"📊":  {"chart", "graph", "bar", "stats"},
+	"🏁":  {"flag", "checkered", "finish", "done"},
+	"🧰":  {"toolbox", "box", "tools", "kit", "config"},
+	"🔑":  {"key", "lock", "access", "secret"},
+	"🔒":  {"lock", "secure", "closed", "security"},
+	"🔓":  {"lock", "unlock", "open", "access"},
 	// Animals & Nature
 	"🐱": {"cat", "feline", "animal", "pet"},
 	"🐈": {"cat", "feline", "animal", "pet", "walking"},

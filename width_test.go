@@ -226,14 +226,14 @@ func TestSearchW(t *testing.T) {
 
 func TestExploreAlternativeWidths(t *testing.T) {
 	alts := []string{
-		"🌧",   // cloud with rain without variation selector
-		"☔",   // umbrella with rain drops
-		"💧",   // droplet
-		"❄",   // snowflake without variation selector
-		"⛄",   // snowman without snow
-		"☃",   // snowman
-		"🏔",   // snow-capped mountain
-		"🌬",   // wind face
+		"🌧", // cloud with rain without variation selector
+		"☔", // umbrella with rain drops
+		"💧", // droplet
+		"❄", // snowflake without variation selector
+		"⛄", // snowman without snow
+		"☃", // snowman
+		"🏔", // snow-capped mountain
+		"🌬", // wind face
 	}
 	for _, e := range alts {
 		rw := runewidth.StringWidth(e)

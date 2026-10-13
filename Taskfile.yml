@@ -36,9 +36,15 @@ tasks:
     cmds:
       - go test ./...
 
-  ci:
-    desc: 'Run race tests, vet, native builds, and the WASM demo build'
+  fmt-check:
+    desc: 'Check Go formatting without modifying files'
     cmds:
+      - sh scripts/check-format.sh
+
+  ci:
+    desc: 'Check formatting, race tests, vet, native builds, and WASM demos'
+    cmds:
+      - task: fmt-check
       - go test -race ./...
       - go vet ./...
       - go build ./examples/...
@@ -88,18 +94,6 @@ tasks:
       - go.mod
     generates:
       - bin/simple
-
-  vhs-validate:
-    desc: 'Validate vhs tape file'
-    cmds:
-      - vhs validate ./examples/swatch/demo.tape
-
-  vhs:
-    desc: 'Generate gif via vhs'
-    deps:
-      - build-ex-swatch
-    cmds:
-      - vhs --output ./examples/swatch/demo.gif ./examples/swatch/demo.tape
 
   build-wasm-site:
     desc: 'Build the WASM demo site into web/'
