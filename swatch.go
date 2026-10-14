@@ -69,12 +69,11 @@ func (s *SwatchPicker) newPickerModel() Model {
 
 // SwatchView renders the swatch preview (emoji + down arrow symbol).
 func (s *SwatchPicker) SwatchView() string {
-	emojiBlock := lipgloss.NewStyle().Render(s.emoji)
 	symbol := swatchPickerSymbol
 	if s.focused {
 		symbol = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true).Render(symbol)
 	}
-	return emojiBlock + " " + symbol
+	return s.emoji + " " + symbol
 }
 
 // SetFocused toggles highlight focus status.
@@ -129,25 +128,17 @@ func (s *SwatchPicker) Size() (width, height int) {
 
 // SetBounds sets where the swatch is positioned in terminal cells.
 func (s *SwatchPicker) SetBounds(row, col, w, h int) {
-	s.row = row
-	s.col = col
-	defer s.updateOverlayBounds()
 	if w <= 0 || h <= 0 {
-		pw, ph := s.Size()
+		width, height := s.Size()
 		if w <= 0 {
-			s.w = pw
-		} else {
-			s.w = w
+			w = width
 		}
 		if h <= 0 {
-			s.h = ph
-		} else {
-			s.h = h
+			h = height
 		}
-	} else {
-		s.w = w
-		s.h = h
 	}
+	s.row, s.col, s.w, s.h = row, col, w, h
+	s.updateOverlayBounds()
 }
 
 // SetEmoji sets the active emoji value.

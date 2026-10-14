@@ -26,13 +26,13 @@ func TestGeneratedMetadataIsCurrent(t *testing.T) {
 
 func TestParseAnnotations(t *testing.T) {
 	entries := map[string]entry{}
-	err := parse([]byte(`<ldml><identity><language type="en"/></identity><annotations>
+	err := parseLocale([]byte(`<ldml><identity><language type="en"/></identity><annotations>
 <annotation cp="❤️" type="tts">red heart</annotation>
 <annotation cp="❤"> heart | love | heart </annotation>
 <annotation cp="🧑‍🚀" type="tts">astronaut</annotation>
 <annotation cp="🧑‍🚀">space | rocket</annotation>
 <annotation cp="&amp;" type="tts">ampersand</annotation>
-</annotations></ldml>`), entries)
+</annotations></ldml>`), entries, "en")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestParseAnnotations(t *testing.T) {
 		`<ldml><identity><language type="en"/></identity><annotations><annotation cp="❤" type="tts">↑↑↑</annotation></annotations></ldml>`,
 		`<ldml><identity><language type="en"/></identity><annotations><annotation cp="❤" type="tts">conflicting name</annotation></annotations></ldml>`,
 	} {
-		if err := parse([]byte(content), entries); err == nil {
+		if err := parseLocale([]byte(content), entries, "en"); err == nil {
 			t.Errorf("accepted invalid data: %s", content)
 		}
 	}

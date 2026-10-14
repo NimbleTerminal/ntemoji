@@ -25,10 +25,6 @@ type entry struct {
 	tags []string
 }
 
-func parse(data []byte, entries map[string]entry) error {
-	return parseLocale(data, entries, "en")
-}
-
 func parseLocale(data []byte, entries map[string]entry, locale string) error {
 	var document struct {
 		Identity struct {
