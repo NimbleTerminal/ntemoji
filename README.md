@@ -219,11 +219,11 @@ Built-in demo examples compile out-of-the-box:
 ```sh
 # Run full-screen demo
 task build-ex-simple
-./bin/simple
+./bin/ntemoji-simple
 
 # Run multi-swatch grid overlay demo
 task build-ex-swatch
-./bin/swatch
+./bin/ntemoji-swatch
 ```
 
 The [online playground](https://nimbleterminal.github.io/ntemoji/) includes both

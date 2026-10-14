@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Correct the swatch example binary name to `ntemoji-swatch`.
+
  * Publish `demoji` and `remoji` as a Homebrew cask, `nimbleterminal/tap/ntemoji`, with release archives for macOS, Linux, and Windows, and add `--version` to both tools.
 
  * Allow empty Remoji delimiters for greedy, longest-name trie matching with Unicode word boundaries, while retaining colon-delimited defaults.

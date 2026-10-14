@@ -62,7 +62,7 @@ tasks:
       - build-cli
 
   clean:
-    desc: 'Clean built examples'
+    desc: 'Clean native binaries and task checksums'
     cmds:
       - rm -rf bin/
       - rm -rf .task
@@ -75,31 +75,33 @@ tasks:
 
   build-ex-swatch:
     desc: 'Build the swatch example'
-    deps:
-      - go-tidy
     cmds:
       - mkdir -p bin
-      - go build -o bin/swatch ./examples/swatch
+      - go build -o bin/ntemoji-swatch ./examples/swatch
     sources:
       - "*.go"
       - examples/swatch/*.go
+      - internal/demorun/*.go
       - go.mod
+      - go.sum
+      - Taskfile.yml
     generates:
-      - bin/swatch
+      - bin/ntemoji-swatch
 
   build-ex-simple:
     desc: 'Build the simple example'
-    deps:
-      - go-tidy
     cmds:
       - mkdir -p bin
-      - go build -o bin/simple ./examples/simple
+      - go build -o bin/ntemoji-simple ./examples/simple
     sources:
       - "*.go"
       - examples/simple/*.go
+      - internal/demorun/*.go
       - go.mod
+      - go.sum
+      - Taskfile.yml
     generates:
-      - bin/simple
+      - bin/ntemoji-simple
 
   build-cli:
     desc: 'Build Demoji and Remoji CLI tools'
@@ -107,17 +109,51 @@ tasks:
       - mkdir -p bin
       - go build -o bin/demoji ./cmd/demoji
       - go build -o bin/remoji ./cmd/remoji
+    sources:
+      - "*.go"
+      - cmd/demoji/*.go
+      - cmd/remoji/*.go
+      - internal/textcli/*.go
+      - go.mod
+      - go.sum
+      - Taskfile.yml
+    generates:
+      - bin/demoji
+      - bin/remoji
 
   build-wasm-site:
     desc: 'Build the WASM demo site into web/'
-    deps: [go-tidy]
     cmds:
       - sh scripts/build-wasm-site.sh
+    sources:
+      - "*.go"
+      - examples/simple/*.go
+      - examples/swatch/*.go
+      - cmd/emojiwasm/*.go
+      - internal/demorun/*.go
+      - go.mod
+      - go.sum
+      - wasm.work
+      - wasm.work.sum
+      - Taskfile.yml
+      - scripts/build-wasm-site.sh
+      - site/*
+      - third_party/unicode/*
     generates:
       - web/demos/simple.wasm
       - web/demos/swatch.wasm
       - web/demos/convert.wasm
       - web/index.html
+      - web/style.css
+      - web/demo.js
+      - web/converter.js
+      - web/convert-worker.js
+      - web/wasm_exec.js
+      - web/booba/booba.js
+      - web/ghostty-web/ghostty-web.js
+      - web/ghostty-web/ghostty-vt.wasm
+      - web/third_party/unicode/LICENSE.txt
+      - web/third_party/unicode/NOTICE.txt
 
   serve-wasm-site:
     desc: 'Serve web/ at http://localhost:8000/ntemoji/ (matches GH Pages prefix)'
