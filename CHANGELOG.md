@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Include named hair and skin-tone emoji components in Demoji/Remoji conversion, including `red hair` → 🦰.
+
  * Restore emoji presentation for desktop and gear, emit completed Demoji control graphemes without waiting for another read, and preserve background mouse-zone endpoints under overlays.
  * Reuse picker search results within rendering and resize measurements; cache Remoji indexes by normalized locale and delimiters with bounded retention.
  * Pin English CLDR sources in the shared locale manifest and explicitly reject unsupported regional/script tables.

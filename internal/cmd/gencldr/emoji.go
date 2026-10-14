@@ -26,7 +26,10 @@ func generateEmoji(dir string) ([]byte, error) {
 	for scanner.Scan() {
 		line, _, _ := strings.Cut(scanner.Text(), "#")
 		codes, status, ok := strings.Cut(line, ";")
-		if !ok || strings.TrimSpace(status) != "fully-qualified" {
+		// Components have standalone CLDR names too (for example, red hair).
+		// Keep them without admitting unqualified text-presentation symbols.
+		status = strings.TrimSpace(status)
+		if !ok || (status != "fully-qualified" && status != "component") {
 			continue
 		}
 		var glyph strings.Builder

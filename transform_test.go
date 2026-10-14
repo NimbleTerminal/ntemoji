@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"testing/iotest"
@@ -333,4 +335,95 @@ func BenchmarkRemojiIndexCold(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buildRemojiIndex(textConfig{locale: "en", before: ":", after: ":"})
 	}
+}
+
+func TestRemojiNamedComponents(t *testing.T) {
+	input := "The quick brown red hair fox jumps over the lazy dog"
+	got, err := RemojiString(input, WithDelimiters("", ""))
+	if err != nil || got != "The quick brown 🦰 🦊 jumps over the lazy 🐕" {
+		t.Fatalf("sentence: %q (%v)", got, err)
+	}
+	for _, emoji := range []string{"🦰", "🦱", "🦳", "🦲", "🏻", "🏼", "🏽", "🏾", "🏿"} {
+		for _, locale := range Locales() {
+			name := EmojiNameFor(emoji, locale)
+			for _, delimiters := range [][2]string{{"", ""}, {":", ":"}} {
+				opts := []TextOption{WithTextLocale(locale), WithDelimiters(delimiters[0], delimiters[1])}
+				token := delimiters[0] + name + delimiters[1]
+				encoded, err := DemojiString(emoji, opts...)
+				if err != nil || encoded != token {
+					t.Fatalf("%s %q encoding: %q (%v)", locale, emoji, encoded, err)
+				}
+				decoded, err := RemojiString(token, opts...)
+				if err != nil || decoded != emoji {
+					t.Fatalf("%s %q decoding: %q (%v)", locale, token, decoded, err)
+				}
+			}
+		}
+	}
+	// Longer names must still win over component names inside them.
+	got, err = RemojiString("person: red hair", WithDelimiters("", ""))
+	if err != nil || got != "🧑‍🦰" {
+		t.Fatalf("longest match: %q (%v)", got, err)
+	}
+}
+
+func TestRemojiAllRedNames(t *testing.T) {
+	count := 0
+	for key, name := range emojiNames {
+		if !strings.Contains(" "+name+" ", " red ") {
+			continue
+		}
+		emoji, ok := canonicalEmoji[key]
+		if !ok {
+			t.Errorf("red name missing from conversion table: %q (%s)", name, key)
+			continue
+		}
+		for _, delimiters := range [][2]string{{"", ""}, {":", ":"}} {
+			token := delimiters[0] + name + delimiters[1]
+			got, err := RemojiString(token, WithDelimiters(delimiters[0], delimiters[1]))
+			if err != nil || got != emoji {
+				t.Errorf("%q: got %q (%v), want %q", token, got, err, emoji)
+			}
+		}
+		count++
+	}
+	if count == 0 {
+		t.Fatal("no red names checked")
+	}
+	t.Logf("checked %d red names in plain and delimited modes", count)
+}
+
+func TestCanonicalEmojiCoversPinnedRGISet(t *testing.T) {
+	data, err := os.ReadFile("internal/cldr/emoji-test.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	counts := map[string]int{}
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.SplitN(line, ";", 2)
+		if len(fields) != 2 || strings.HasPrefix(line, "#") {
+			continue
+		}
+		status := strings.Fields(fields[1])[0]
+		if status != "fully-qualified" && status != "component" {
+			continue
+		}
+		counts[status]++
+		var glyph strings.Builder
+		for _, code := range strings.Fields(fields[0]) {
+			cp, err := strconv.ParseInt(code, 16, 32)
+			if err != nil {
+				t.Fatal(err)
+			}
+			glyph.WriteRune(rune(cp))
+		}
+		emoji := glyph.String()
+		if canonicalEmoji[metadataKey(emoji)] != emoji {
+			t.Errorf("missing %s: %q", status, emoji)
+		}
+	}
+	if counts["fully-qualified"] != 3944 || counts["component"] != 9 || len(canonicalEmoji) != 3953 {
+		t.Fatalf("unexpected Unicode 17.0 coverage: %v; table has %d entries", counts, len(canonicalEmoji))
+	}
+	t.Log("covered all 3,944 fully-qualified emoji and 9 components")
 }
