@@ -226,3 +226,49 @@ func TestRemojiPlainReadErrorsAndBufferBoundary(t *testing.T) {
 		t.Fatal("buffer-boundary conversion failed", err)
 	}
 }
+
+// Check output before a reader supplies another chunk, without timing-based
+// assertions or closing the stream to force a flush.
+type observedReader struct {
+	first          string
+	beforeNextRead func()
+}
+
+func (r *observedReader) Read(p []byte) (int, error) {
+	if r.first != "" {
+		n := copy(p, r.first)
+		r.first = r.first[n:]
+		return n, nil
+	}
+	r.beforeNextRead()
+	return 0, io.EOF
+}
+
+func TestDemojiEmitsCompletedControlsBeforeNextRead(t *testing.T) {
+	for _, ending := range []string{"\n", "\r\n", "\t", "\x00", "\u2028", "\u2029", "\u200e"} {
+		t.Run(ending, func(t *testing.T) {
+			var out bytes.Buffer
+			reader := &observedReader{first: "🚀" + ending, beforeNextRead: func() {
+				if got := out.String(); got != "rocket"+ending {
+					t.Errorf("before next read: %q", got)
+				}
+			}}
+			if err := Demoji(&out, reader); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestSplitGraphemeWaitsForExtensions(t *testing.T) {
+	for _, input := range []string{"\r", "🚀", "a", "\u200d", "\u0600", "\xe2\x80"} {
+		advance, token, err := splitGrapheme([]byte(input), false)
+		if advance != 0 || token != nil || err != nil {
+			t.Fatalf("premature cluster %q: %d %q %v", input, advance, token, err)
+		}
+	}
+	advance, token, err := splitGrapheme([]byte("\r\n"), false)
+	if advance != 2 || string(token) != "\r\n" || err != nil {
+		t.Fatal(advance, token, err)
+	}
+}

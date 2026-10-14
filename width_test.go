@@ -198,8 +198,8 @@ func TestAllDefaultEmojisWidths(t *testing.T) {
 		for _, e := range p.Emojis {
 			rw := runewidth.StringWidth(e)
 			lw := lipgloss.Width(e)
-			if rw != 2 || lw != 2 {
-				t.Logf("Palette %s emoji %s: runewidth=%d, lipgloss=%d, bytes=%d", p.Name, e, rw, lw, len(e))
+			if lw != 2 {
+				t.Errorf("Palette %s emoji %s: runewidth=%d, lipgloss=%d, bytes=%d", p.Name, e, rw, lw, len(e))
 			}
 		}
 	}

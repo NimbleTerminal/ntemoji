@@ -231,20 +231,22 @@ func OverlayView(bgView, modalView string, bgW, bgH, top, left int) string {
 			// Boundary check 1: if we are overwriting a placeholder cell, clear the main character
 			if bgCells[targetIdx].Width == 0 && bgCells[targetIdx].Char == "" && targetIdx > 0 {
 				if targetIdx-1 < left || targetIdx-1 >= left+len(fgCells) {
-					bgCells[targetIdx-1] = overlayCell{Char: " ", Width: 1, Style: bgCells[targetIdx-1].Style}
+					bgCells[targetIdx-1] = overlayCell{Char: " ", Width: 1, Style: bgCells[targetIdx-1].Style, Prefix: bgCells[targetIdx-1].Prefix, Suffix: bgCells[targetIdx-1].Suffix}
 				}
 			}
 
 			// Boundary check 2: if we are overwriting a double-width char, clear its placeholder
 			if bgCells[targetIdx].Width == 2 && targetIdx+1 < len(bgCells) {
 				if targetIdx+1 < left || targetIdx+1 >= left+len(fgCells) {
-					bgCells[targetIdx+1] = overlayCell{Char: " ", Width: 1, Style: bgCells[targetIdx+1].Style}
+					bgCells[targetIdx+1] = overlayCell{Char: " ", Width: 1, Style: bgCells[targetIdx+1].Style, Prefix: bgCells[targetIdx+1].Prefix, Suffix: bgCells[targetIdx+1].Suffix}
 				}
 			}
 
 			if len(fgCells) == 1 && fgCell.Width == 0 {
 				bgCells[targetIdx].Prefix = fgCell.Prefix + fgCell.Suffix + bgCells[targetIdx].Prefix
 			} else {
+				fgCell.Prefix = bgCells[targetIdx].Prefix + fgCell.Prefix
+				fgCell.Suffix += bgCells[targetIdx].Suffix
 				bgCells[targetIdx] = fgCell
 			}
 		}

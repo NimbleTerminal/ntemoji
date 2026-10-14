@@ -41,7 +41,8 @@ var ErrEmptyDelimiter = errors.New("ntemoji: Remoji requires nonempty opening an
 // Plain names are separated from adjacent words/names by spaces. Delimited
 // output preserves surrounding spacing. Text-presentation (VS15) is preserved.
 // Memory is bounded to a grapheme (maximum 1 MiB); larger graphemes return a
-// scanner error. Neither stream is closed. Errors may leave partial output.
+// scanner error. Output is flushed at completed control graphemes, including
+// line feeds. Neither stream is closed. Errors may leave partial output.
 func Demoji(dst io.Writer, src io.Reader, opts ...TextOption) (err error) {
 	output := bufio.NewWriter(dst)
 	defer func() { err = errors.Join(err, output.Flush()) }()
@@ -76,6 +77,11 @@ func Demoji(dst io.Writer, src io.Reader, opts ...TextOption) (err error) {
 		if err := writeText(dst, text); err != nil {
 			return err
 		}
+		if endsClosedGrapheme(original) {
+			if err := output.Flush(); err != nil {
+				return err
+			}
+		}
 		previous, _ = utf8.DecodeLastRuneInString(text)
 		previousChanged = changed
 	}
@@ -84,7 +90,19 @@ func Demoji(dst io.Writer, src io.Reader, opts ...TextOption) (err error) {
 
 func wordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsMark(r) }
 
-// Keep the final cluster until more bytes arrive: a following modifier or ZWJ
+// endsClosedGrapheme recognizes GCB Control/LF using the segmenter's own
+// property tables: only these force a break before an Extend character. CR
+// must wait for a possible LF (GB3), even though it breaks before Extend.
+func endsClosedGrapheme(text string) bool {
+	r, _ := utf8.DecodeLastRuneInString(text)
+	if r == '\r' {
+		return false
+	}
+	_, rest, _, _ := uniseg.FirstGraphemeClusterInString(string(r)+"\u0300", -1)
+	return rest != ""
+}
+
+// Keep the final extensible cluster until more bytes arrive: a modifier or ZWJ
 // may still extend it. Incomplete UTF-8 must not create a false boundary.
 func splitGrapheme(data []byte, atEOF bool) (int, []byte, error) {
 	if len(data) == 0 {
@@ -103,7 +121,7 @@ func splitGrapheme(data []byte, atEOF bool) (int, []byte, error) {
 		return 0, nil, nil
 	}
 	cluster, rest, _, _ := uniseg.FirstGraphemeCluster(available, -1)
-	if len(rest) == 0 && !atEOF {
+	if len(rest) == 0 && !atEOF && !endsClosedGrapheme(string(cluster)) {
 		return 0, nil, nil
 	}
 	return len(cluster), cluster, nil

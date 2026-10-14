@@ -149,3 +149,22 @@ func TestOverlayPreservesZeroWidthText(t *testing.T) {
 		}
 	}
 }
+
+func TestOverlayPreservesBackgroundZoneEndpoints(t *testing.T) {
+	const marker = "\x1b[1001z"
+	for _, tc := range []struct {
+		bg, fg, want string
+		width, left  int
+	}{
+		{marker + "abcdef" + marker, "XY", marker + "XYcdef" + marker, 6, 0},
+		{marker + "abcdef" + marker, "XY", marker + "abcdXY" + marker, 6, 4},
+		{marker + "abcdef" + marker, "XY", marker + "abXY" + marker, 4, 2},
+		{marker + "👩‍💻ab" + marker, "X", marker + " Xab" + marker, 4, 1},
+		{marker + "ab👩‍💻" + marker, "X", marker + "abX " + marker, 4, 2},
+	} {
+		got := OverlayView(tc.bg, tc.fg, tc.width, 1, 0, tc.left)
+		if got != tc.want {
+			t.Errorf("overlay %q at %d: got %q, want %q", tc.bg, tc.left, got, tc.want)
+		}
+	}
+}

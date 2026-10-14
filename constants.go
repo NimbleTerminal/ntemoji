@@ -144,7 +144,7 @@ const (
 
 	// === Objects & Tools ===
 	EmojiComputer        = "💻"
-	EmojiDesktop         = "🖥"
+	EmojiDesktop         = "🖥️"
 	EmojiFloppyDisk      = "💾"
 	EmojiCamera          = "📷"
 	EmojiFolder          = "📁"
@@ -157,7 +157,7 @@ const (
 	EmojiEnvelope        = "📩"
 	EmojiIncomingMail    = "📨"
 	EmojiPackage         = "📦"
-	EmojiGear            = "⚙"
+	EmojiGear            = "⚙️"
 	EmojiWrench          = "🔧"
 	EmojiHammer          = "🔨"
 	EmojiToolbox         = "🧰"
