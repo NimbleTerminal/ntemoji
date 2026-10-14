@@ -25,10 +25,10 @@ use `metadata_generated.go`; they do not read XML or run the generator. The test
 suite checks that generated output exactly matches the pinned snapshot.
 
 To update, select a published CLDR release, download the two files and its
-`LICENSE`, update the release and hashes in `internal/cmd/gencldr/main.go` and this
-document, regenerate, and run `task ci`. Review changes to names and keywords.
+`LICENSE`, update the release in `internal/cmd/gencldr/main.go`, hashes in
+`sources.json`, and this document, regenerate, and run `task ci`. Review changes to names and keywords.
 Additional pinned annotation/derived pairs for `de`, `es`, `fr`, `ja`, and `zh`
-are listed with SHA-256 hashes in [sources.json](sources.json). Their upstream
+are listed alongside English with SHA-256 hashes in [sources.json](sources.json). Their upstream
 paths are `common/annotations/{locale}.xml` and
 `common/annotationsDerived/{locale}.xml` at the same `release-48-2` tag. Local
 `{locale}-derived.xml` files correspond to the latter. `zh` is Simplified Chinese.
@@ -38,7 +38,8 @@ source checksum and language identity. All files are unmodified upstream XML.
 To add a base language, download both files, add their hashes and locale to the
 manifest, regenerate, and test. The extractor rejects unresolved inheritance
 markers and incomplete names; region/script data needing inheritance resolution
-must not be added as though it were a complete base-language table. Runtime
+are explicitly rejected; they must not be added as though they were complete
+base-language tables. Runtime
 lookup uses a limited bundle matcher with English fallback, not full CLDR locale
 inheritance. Missing localized entries fall back to English; missing keywords
 use the localized name. See the public locale API documentation for matching.

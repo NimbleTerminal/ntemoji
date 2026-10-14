@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -53,7 +55,10 @@ func TestParseAnnotations(t *testing.T) {
 
 func TestRejectChangedSnapshot(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, sources[0].file), []byte("changed"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "en.xml"), []byte("changed"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "sources.json"), []byte(`[{"file":"en.xml","locale":"en","sha256":"wrong"}]`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := generate(dir); err == nil {
@@ -101,5 +106,19 @@ func TestGeneratedEmojiSequencesAreCurrent(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatal("emoji sequences stale; run task generate-cldr")
+	}
+}
+
+func TestLocaleManifestRejectsUnsupportedTags(t *testing.T) {
+	for _, locale := range []string{"pt-BR", "zh_Hant", "en;panic()", "", "EN"} {
+		dir := t.TempDir()
+		manifest := fmt.Sprintf(`[{"file":"test.xml","locale":%q,"sha256":"unused"}]`, locale)
+		if err := os.WriteFile(filepath.Join(dir, "sources.json"), []byte(manifest), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		_, err := loadLocales(dir)
+		if err == nil || !strings.Contains(err.Error(), "invalid or duplicate locale source") {
+			t.Fatalf("locale %q: %v", locale, err)
+		}
 	}
 }

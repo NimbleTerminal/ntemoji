@@ -10,6 +10,16 @@
     "locale": "de"
   },
   {
+    "file": "en-derived.xml",
+    "sha256": "d76bd041c8c9e7b00b716aff8b7d9dbf509877010e191d5efd068be2553e066e",
+    "locale": "en"
+  },
+  {
+    "file": "en.xml",
+    "sha256": "8511aadd046fdba2f0ffe590266ced8bbf48175ad139b2675d85d7141057b235",
+    "locale": "en"
+  },
+  {
     "file": "es-derived.xml",
     "sha256": "ea9b3abc0a2c73a815faec1034764b6a503d14638ad4fb9556d8a7341838672c",
     "locale": "es"

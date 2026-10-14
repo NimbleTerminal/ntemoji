@@ -3,23 +3,16 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/xml"
 	"flag"
 	"fmt"
 	"go/format"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 )
 
 const release = "48.2"
-
-var sources = []struct{ file, digest string }{
-	{"en.xml", "8511aadd046fdba2f0ffe590266ced8bbf48175ad139b2675d85d7141057b235"},
-	{"en-derived.xml", "d76bd041c8c9e7b00b716aff8b7d9dbf509877010e191d5efd068be2553e066e"},
-}
 
 type annotation struct {
 	Code string `xml:"cp,attr"`
@@ -80,18 +73,13 @@ func parseLocale(data []byte, entries map[string]entry, locale string) error {
 }
 
 func generate(sourceDir string) ([]byte, error) {
-	entries := make(map[string]entry)
-	for _, source := range sources {
-		data, err := os.ReadFile(filepath.Join(sourceDir, source.file))
-		if err != nil {
-			return nil, err
-		}
-		if fmt.Sprintf("%x", sha256.Sum256(data)) != source.digest {
-			return nil, fmt.Errorf("checksum mismatch for %s: update the pinned source and digest together", source.file)
-		}
-		if err := parse(data, entries); err != nil {
-			return nil, fmt.Errorf("%s: %w", source.file, err)
-		}
+	locales, err := loadLocales(sourceDir)
+	if err != nil {
+		return nil, err
+	}
+	entries := locales["en"]
+	if len(entries) == 0 {
+		return nil, fmt.Errorf("locale manifest is missing English annotations")
 	}
 	keys := make([]string, 0, len(entries))
 	for key, e := range entries {

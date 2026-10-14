@@ -17,7 +17,7 @@ type localeSource struct {
 	Locale string `json:"locale"`
 }
 
-func generateTranslations(dir string) ([]byte, error) {
+func loadLocales(dir string) (map[string]map[string]entry, error) {
 	manifest, err := os.ReadFile(filepath.Join(dir, "sources.json"))
 	if err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func generateTranslations(dir string) ([]byte, error) {
 	locales := map[string]map[string]entry{}
 	seen := map[string]bool{}
 	for _, source := range sources {
-		if source.Locale == "" || source.Locale == "en" || source.File != filepath.Base(source.File) || seen[source.File] {
+		if !validBaseLocale(source.Locale) || source.File != filepath.Base(source.File) || seen[source.File] {
 			return nil, fmt.Errorf("invalid or duplicate locale source: %+v", source)
 		}
 		seen[source.File] = true
@@ -50,6 +50,30 @@ func generateTranslations(dir string) ([]byte, error) {
 			return nil, fmt.Errorf("%s: %w", source.File, err)
 		}
 	}
+	return locales, nil
+}
+
+// The runtime currently supports complete base-language tables only. Reject
+// regional/script tags explicitly rather than emitting invalid Go identifiers
+// or silently ignoring CLDR inheritance.
+func validBaseLocale(locale string) bool {
+	if len(locale) < 2 || len(locale) > 3 {
+		return false
+	}
+	for _, r := range locale {
+		if r < 'a' || r > 'z' {
+			return false
+		}
+	}
+	return true
+}
+
+func generateTranslations(dir string) ([]byte, error) {
+	locales, err := loadLocales(dir)
+	if err != nil {
+		return nil, err
+	}
+	delete(locales, "en")
 	names := make([]string, 0, len(locales))
 	for locale := range locales {
 		names = append(names, locale)
