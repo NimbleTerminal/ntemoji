@@ -96,7 +96,8 @@ func MatchEmojiFor(emoji, query, locale string) bool {
 	if strings.Contains(strings.ToLower(EmojiNameFor(emoji, locale)), query) {
 		return true
 	}
-	for _, tag := range TagsFor(emoji, locale) {
+	// Internal search only reads metadata; the public TagsFor API still clones.
+	for _, tag := range emojiLocales[metadataLocale(locale)][metadataKey(emoji)].Tags {
 		if strings.Contains(strings.ToLower(tag), query) {
 			return true
 		}

@@ -55,8 +55,7 @@ func (m Model) textCategories(width int) string {
 	return out.String()
 }
 
-func (m Model) labeledResults(width, rows int) string {
-	emojis := m.filteredEmojis()
+func (m Model) labeledResults(emojis []string, width, rows int) string {
 	lines := make([]string, 0, rows*2-1)
 	for r := 0; r < rows; r++ {
 		idx := m.gridScrollOffset() + r

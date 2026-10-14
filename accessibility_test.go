@@ -165,7 +165,7 @@ func TestListLabelsKeepFullStateWhenClipped(t *testing.T) {
 	m := New(WithListMode(true), WithInitialEmoji("👩🏽‍🚀"), WithPalettes([]Palette{{Name: "Astronauts", Emojis: []string{"👩🏽‍🚀"}}}))
 	m.GridCols = 3
 	m.GridRows = 1
-	line := ansi.Strip(m.labeledResults(12, 1))
+	line := ansi.Strip(m.labeledResults(m.filteredEmojis(), 12, 1))
 	if lipgloss.Width(line) != 12 || !strings.Contains(line, "👩🏽‍🚀") || !strings.HasSuffix(line, "…") {
 		t.Fatalf("clipped row: %q", line)
 	}

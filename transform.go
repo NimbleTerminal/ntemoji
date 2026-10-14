@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -148,36 +149,8 @@ func Remoji(dst io.Writer, src io.Reader, opts ...TextOption) (err error) {
 	output := bufio.NewWriter(dst)
 	defer func() { err = errors.Join(err, output.Flush()) }()
 	dst = output
-	tokens := map[string]string{}
-	for key, emoji := range canonicalEmoji {
-		name := EmojiNameFor(key, cfg.locale)
-		if name == key {
-			continue
-		}
-		token := cfg.before + name + cfg.after
-		if old, exists := tokens[token]; exists && old != emoji {
-			tokens[token] = ""
-		} else if !exists {
-			tokens[token] = emoji
-		}
-	}
-	root := &textNode{}
-	longest := 1
-	for token, emoji := range tokens {
-		longest = max(longest, len(token))
-		node := root
-		for i := range len(token) {
-			if node.next == nil {
-				node.next = map[byte]*textNode{}
-			}
-			if node.next[token[i]] == nil {
-				node.next[token[i]] = &textNode{}
-			}
-			node = node.next[token[i]]
-		}
-		node.value = emoji
-		node.terminal = true
-	}
+	index := remojiIndexFor(cfg)
+	root, longest := index.root, index.longest
 	reader := &textReader{Reader: bufio.NewReaderSize(src, longest+utf8.UTFMax)}
 	var previous rune
 	for {
@@ -241,6 +214,82 @@ func Remoji(dst io.Writer, src io.Reader, opts ...TextOption) (err error) {
 		_, _ = reader.Discard(size)
 		previous = r
 	}
+}
+
+// Bound the cache because callers may supply arbitrary delimiters. Indexes are
+// immutable after construction and remain safe to use after eviction.
+const remojiCacheLimit = 8
+
+type remojiIndex struct {
+	root    *textNode
+	longest int
+}
+type cachedRemojiIndex struct {
+	config textConfig
+	index  *remojiIndex
+}
+
+var remojiCache struct {
+	sync.Mutex
+	entries []cachedRemojiIndex
+}
+
+func remojiIndexFor(cfg textConfig) *remojiIndex {
+	cfg.locale = metadataLocale(cfg.locale)
+	// Avoid retaining unusually large, caller-controlled delimiter strings.
+	if len(cfg.before)+len(cfg.after) > 128 {
+		return buildRemojiIndex(cfg)
+	}
+	remojiCache.Lock()
+	defer remojiCache.Unlock()
+	for i, entry := range remojiCache.entries {
+		if entry.config == cfg {
+			copy(remojiCache.entries[1:i+1], remojiCache.entries[:i])
+			remojiCache.entries[0] = entry
+			return entry.index
+		}
+	}
+	index := buildRemojiIndex(cfg)
+	remojiCache.entries = append([]cachedRemojiIndex{{cfg, index}}, remojiCache.entries...)
+	if len(remojiCache.entries) > remojiCacheLimit {
+		remojiCache.entries[remojiCacheLimit] = cachedRemojiIndex{}
+		remojiCache.entries = remojiCache.entries[:remojiCacheLimit]
+	}
+	return index
+}
+
+func buildRemojiIndex(cfg textConfig) *remojiIndex {
+	tokens := map[string]string{}
+	for key, emoji := range canonicalEmoji {
+		name := EmojiNameFor(key, cfg.locale)
+		if name == key {
+			continue
+		}
+		token := cfg.before + name + cfg.after
+		if old, exists := tokens[token]; exists && old != emoji {
+			tokens[token] = ""
+		} else if !exists {
+			tokens[token] = emoji
+		}
+	}
+	root := &textNode{}
+	longest := 1
+	for token, emoji := range tokens {
+		longest = max(longest, len(token))
+		node := root
+		for i := range len(token) {
+			if node.next == nil {
+				node.next = map[byte]*textNode{}
+			}
+			if node.next[token[i]] == nil {
+				node.next[token[i]] = &textNode{}
+			}
+			node = node.next[token[i]]
+		}
+		node.value = emoji
+		node.terminal = true
+	}
+	return &remojiIndex{root: root, longest: longest}
 }
 
 func nameWordRune(r rune) bool {

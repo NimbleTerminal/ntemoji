@@ -3,6 +3,7 @@ package ntemoji
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -270,5 +271,66 @@ func TestSplitGraphemeWaitsForExtensions(t *testing.T) {
 	advance, token, err := splitGrapheme([]byte("\r\n"), false)
 	if advance != 2 || string(token) != "\r\n" || err != nil {
 		t.Fatal(advance, token, err)
+	}
+}
+
+func TestRemojiCacheReusesNormalizedLocaleAndSeparatesDelimiters(t *testing.T) {
+	cfg := textConfig{locale: "es", before: "[", after: "]"}
+	first := remojiIndexFor(cfg)
+	cfg.locale = "es-MX"
+	if remojiIndexFor(cfg) != first {
+		t.Fatal("regional alias rebuilt the index")
+	}
+	cfg.before = "<"
+	if remojiIndexFor(cfg) == first {
+		t.Fatal("different delimiters shared an index")
+	}
+	for i := 0; i < remojiCacheLimit+2; i++ {
+		remojiIndexFor(textConfig{before: strings.Repeat("[", i), after: "]"})
+	}
+	remojiCache.Lock()
+	count := len(remojiCache.entries)
+	remojiCache.Unlock()
+	if count > remojiCacheLimit {
+		t.Fatalf("cache grew to %d entries", count)
+	}
+	// Eviction must not mutate an index held by an in-flight conversion.
+	node := first.root
+	for _, b := range []byte("[cohete]") {
+		node = node.next[b]
+		if node == nil {
+			t.Fatal("eviction mutated index")
+		}
+	}
+	if node.value != "🚀" {
+		t.Fatal(node.value)
+	}
+}
+
+func BenchmarkRemojiWarm(b *testing.B) {
+	_, _ = RemojiString(":rocket:")
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = RemojiString(":rocket:")
+	}
+}
+
+func TestRemojiConcurrentCachedCalls(t *testing.T) {
+	for i := 0; i < 16; i++ {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			t.Parallel()
+			got, err := RemojiString("[cohete]", WithTextLocale("es-MX"), WithDelimiters("[", "]"))
+			if err != nil || got != "🚀" {
+				t.Fatalf("%q: %v", got, err)
+			}
+		})
+	}
+}
+
+func BenchmarkRemojiIndexCold(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		buildRemojiIndex(textConfig{locale: "en", before: ":", after: ":"})
 	}
 }

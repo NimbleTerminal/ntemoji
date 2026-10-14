@@ -20,7 +20,11 @@ type AccessibilityState struct {
 // Hosts can compare snapshots after Update and announce meaningful changes.
 // This API does not itself send screen-reader announcements.
 func (m Model) AccessibilityState() AccessibilityState {
-	s := AccessibilityState{Focus: m.Focus, ResultCount: len(m.filteredEmojis()),
+	return m.accessibilityState(m.filteredEmojis())
+}
+
+func (m Model) accessibilityState(emojis []string) AccessibilityState {
+	s := AccessibilityState{Focus: m.Focus, ResultCount: len(emojis),
 		SelectedEmoji: m.Selected, SelectedName: EmojiNameFor(m.Selected, m.locale)}
 	if m.ShowSearch {
 		s.Query = m.SearchInput.Value()
@@ -36,7 +40,7 @@ func (m Model) AccessibilityState() AccessibilityState {
 		}
 	case FocusGrid:
 		s.Count = s.ResultCount
-		s.FocusedEmoji = m.SelectedEmoji()
+		s.FocusedEmoji = m.selectedEmoji(emojis)
 		if s.FocusedEmoji != "" {
 			s.Position = m.GridCursorY*m.resultCols() + m.GridCursorX + 1
 		}

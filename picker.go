@@ -166,7 +166,10 @@ func (m Model) gridScrollOffset() int {
 
 // SelectedEmoji returns the emoji under the grid cursor.
 func (m Model) SelectedEmoji() string {
-	emojis := m.filteredEmojis()
+	return m.selectedEmoji(m.filteredEmojis())
+}
+
+func (m Model) selectedEmoji(emojis []string) string {
 	if len(emojis) == 0 {
 		return ""
 	}
@@ -205,7 +208,11 @@ func (m Model) filteredEmojis() []string {
 
 // ViewSize returns the size of the picker (width, height in cells).
 func (m Model) ViewSize() (width, height int) {
-	return lipgloss.Size(m.View().Content)
+	return m.viewSize(m.filteredEmojis())
+}
+
+func (m Model) viewSize(emojis []string) (width, height int) {
+	return lipgloss.Size(m.view(emojis).Content)
 }
 
 func (m Model) cycleFocus(next bool) Focus {
@@ -292,20 +299,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Height = msg.Height
 		// Measure the rendered chrome, including custom frame padding and
 		// wrapped sections, rather than duplicating View's layout arithmetic.
+		emojis := m.filteredEmojis()
 		measure := m
 		measure.zm = nil
 		measure.GridCols, measure.GridRows = 1, 1
-		baseWidth, _ := measure.ViewSize()
+		baseWidth, _ := measure.viewSize(emojis)
 		measure.GridCols = max(1, min(12, 1+(msg.Width-baseWidth)/4))
 		// Remeasure at the chosen width: presets and categories can wrap.
-		_, baseHeight := measure.ViewSize()
+		_, baseHeight := measure.viewSize(emojis)
 		measure.GridRows = max(1, min(8, 1+(msg.Height-baseHeight)/2))
 		// Explicit frame dimensions can pad or clip content, so their size
 		// is not linear in grid dimensions. Keep measured fitting for those.
 		if m.customFrame && (m.frameStyle.GetWidth() > 0 || m.frameStyle.GetHeight() > 0 || m.frameStyle.GetMaxWidth() > 0 || m.frameStyle.GetMaxHeight() > 0) {
 			measure.GridCols, measure.GridRows = 12, 1
 			for measure.GridCols > 1 {
-				w, _ := measure.ViewSize()
+				w, _ := measure.viewSize(emojis)
 				if w <= msg.Width {
 					break
 				}
@@ -313,7 +321,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			measure.GridRows = 8
 			for measure.GridRows > 1 {
-				_, h := measure.ViewSize()
+				_, h := measure.viewSize(emojis)
 				if h <= msg.Height {
 					break
 				}
@@ -543,6 +551,10 @@ func (m Model) updateSearch(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View renders the emoji picker UI.
 func (m Model) View() tea.View {
+	return m.view(m.filteredEmojis())
+}
+
+func (m Model) view(emojis []string) tea.View {
 	cols, rows := m.gridDims()
 
 	// Focus borders
@@ -558,7 +570,7 @@ func (m Model) View() tea.View {
 
 	// The preview follows focus, independently of the committed selection.
 	headerStr := m.Theme.TitleStyle.Render("Pick an Emoji")
-	state := m.AccessibilityState()
+	state := m.accessibilityState(emojis)
 	preview := state.FocusedName
 	if state.FocusedEmoji != "" {
 		preview = state.FocusedEmoji + " " + preview
@@ -674,12 +686,11 @@ func (m Model) View() tea.View {
 	sections = append(sections, catBorder.Width(outerW).Render(catBlock))
 
 	// 5. Grid View (filtered & scrolled)
-	emojis := m.filteredEmojis()
 	scrollOffset := m.gridScrollOffset()
 
 	gridStr := ""
 	if m.listMode {
-		gridStr = m.labeledResults(innerW, rows)
+		gridStr = m.labeledResults(emojis, innerW, rows)
 	} else {
 		for r := 0; r < rows; r++ {
 			rowIdx := r + scrollOffset
