@@ -24,6 +24,9 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
       - name: Build demo site
         run: sh scripts/build-wasm-site.sh
       - uses: actions/configure-pages@v6

@@ -1,4 +1,4 @@
-// Run with: go run ./examples/swatch
+// Run with: go -C examples run ./swatch
 package main
 
 import (
@@ -11,7 +11,7 @@ import (
 	"charm.land/lipgloss/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
 	"nimbleterminal.dev/ntemoji"
-	"nimbleterminal.dev/ntemoji/internal/demorun"
+	"nimbleterminal.dev/ntemoji/examples/internal/demorun"
 )
 
 const (

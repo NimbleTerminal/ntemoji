@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Split demos and Booba tooling into a nested examples module and update Go dependencies and the browser Bubble Tea fork.
+
  * Include named hair and skin-tone emoji components in Demoji/Remoji conversion, including `red hair` → 🦰.
 
  * Restore emoji presentation for desktop and gear, emit completed Demoji control graphemes without waiting for another read, and preserve background mouse-zone endpoints under overlays.

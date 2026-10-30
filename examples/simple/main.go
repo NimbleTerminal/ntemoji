@@ -1,4 +1,4 @@
-// Run with: go run ./examples/simple
+// Run with: go -C examples run ./simple
 package main
 
 import (
@@ -9,7 +9,7 @@ import (
 	"charm.land/lipgloss/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
 	"nimbleterminal.dev/ntemoji"
-	"nimbleterminal.dev/ntemoji/internal/demorun"
+	"nimbleterminal.dev/ntemoji/examples/internal/demorun"
 )
 
 func main() {

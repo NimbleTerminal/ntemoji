@@ -22,14 +22,17 @@ tasks:
     run: once
     cmds:
       - go mod tidy
+      - go -C examples mod tidy
 
   go-update:
     desc: 'Go update all the dependencies'
     run: once
     cmds:
       - go get -u ./...
-      - go get -u tool
+      - go -C examples get -u ./...
+      - go -C examples get -u tool
       - go mod tidy
+      - go -C examples mod tidy
 
   generate-cldr:
     desc: 'Regenerate emoji metadata offline from the pinned CLDR snapshot'
@@ -40,6 +43,7 @@ tasks:
     desc: 'Run all Go tests'
     cmds:
       - go test ./...
+      - go -C examples test ./...
 
   fmt-check:
     desc: 'Check Go formatting without modifying files'
@@ -51,8 +55,11 @@ tasks:
     cmds:
       - task: fmt-check
       - go test -race ./...
+      - go -C examples test -race ./...
       - go vet ./...
-      - go build ./examples/... ./cmd/...
+      - go -C examples vet ./...
+      - go build ./cmd/...
+      - go -C examples build ./...
       - sh scripts/build-wasm-site.sh
 
   build:
@@ -77,11 +84,13 @@ tasks:
     desc: 'Build the swatch example'
     cmds:
       - mkdir -p bin
-      - go build -o bin/ntemoji-swatch ./examples/swatch
+      - go -C examples build -o ../bin/ntemoji-swatch ./swatch
     sources:
       - "*.go"
       - examples/swatch/*.go
-      - internal/demorun/*.go
+      - examples/internal/demorun/*.go
+      - examples/go.mod
+      - examples/go.sum
       - go.mod
       - go.sum
       - Taskfile.yml
@@ -92,11 +101,13 @@ tasks:
     desc: 'Build the simple example'
     cmds:
       - mkdir -p bin
-      - go build -o bin/ntemoji-simple ./examples/simple
+      - go -C examples build -o ../bin/ntemoji-simple ./simple
     sources:
       - "*.go"
       - examples/simple/*.go
-      - internal/demorun/*.go
+      - examples/internal/demorun/*.go
+      - examples/go.mod
+      - examples/go.sum
       - go.mod
       - go.sum
       - Taskfile.yml
@@ -130,7 +141,9 @@ tasks:
       - examples/simple/*.go
       - examples/swatch/*.go
       - cmd/emojiwasm/*.go
-      - internal/demorun/*.go
+      - examples/internal/demorun/*.go
+      - examples/go.mod
+      - examples/go.sum
       - go.mod
       - go.sum
       - wasm.work

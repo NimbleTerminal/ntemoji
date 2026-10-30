@@ -238,6 +238,12 @@ task serve-wasm-site
 # Open http://localhost:8000/ntemoji/
 ```
 
+The library and CLI tools live in the root Go module. The separate `examples/`
+module owns the demos and Booba tooling, with a local replacement pointing to
+the root library. Run demos with `go -C examples run ./simple` or
+`go -C examples run ./swatch`. `task go-tidy`, `task go-update`, and `task test`
+cover both modules.
+
 Native builds use upstream Bubble Tea v2 from `go.mod`. Browser builds opt into
 `wasm.work`, which pins the fork needed for WASM support. The Taskfile and CI
 select this workspace automatically for both WASM builds. To build the full site directly:
@@ -250,7 +256,7 @@ Applications importing `ntemoji` that target WASM must configure the replacement
 from `wasm.work` in their own module or workspace; Go does not inherit it.
 
 The `booba-assets` tool still uses its upstream `github.com/NimbleMarkets/go-booba`
-module path. The examples use `internal/demorun` to select the native or WASM
+module path. The examples use `examples/internal/demorun` to select the native or WASM
 launcher and publish their current controls through Booba terminal actions. The tracked page source lives in `site/`.
 The shared build script compiles both examples, stages the runtime, and copies the page into `web/`.
 Generated browser assets are ignored by Git; edit `site/`, not `web/`.
@@ -323,7 +329,7 @@ open (zero-valued while closed).
 Try the list and snapshot integration in the simple example:
 
 ```sh
-NTEMOJI_LIST=1 go run ./examples/simple
+NTEMOJI_LIST=1 go -C examples run ./simple
 ```
 
 The example also publishes focused names in its browser action status. These APIs
@@ -362,7 +368,7 @@ its open picker. UI instructions and palette/category names are not translated.
 The bundled tables increase binary size; there are no runtime downloads.
 
 ```sh
-NTEMOJI_LIST=1 NTEMOJI_LOCALE=es go run ./examples/simple
+NTEMOJI_LIST=1 NTEMOJI_LOCALE=es go -C examples run ./simple
 ```
 
 ## Converting emoji in text
