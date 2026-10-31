@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Make generated-data freshness checks insensitive to equivalent Unicode string quoting across Go versions, and test Go 1.26.8 and 1.27 in CI.
+
  * Split demos and Booba tooling into a nested examples module and update Go dependencies and the browser Bubble Tea fork.
 
  * Include named hair and skin-tone emoji components in Demoji/Remoji conversion, including `red hair` → 🦰.

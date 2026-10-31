@@ -22,7 +22,10 @@ task generate-cldr
 The task runs `go generate ./...`, which can also be invoked directly.
 Generation verifies the source checksums and uses no network. Ordinary builds
 use `metadata_generated.go`; they do not read XML or run the generator. The test
-suite checks that generated output exactly matches the pinned snapshot.
+suite checks that generated declarations and data match the pinned snapshot,
+normalizing string literal spelling and formatting because Go releases use
+different Unicode tables when quoting newer emoji. Comments remain part of the
+comparison. CI runs these checks on Go 1.26.8 and Go 1.27.
 
 To update, select a published CLDR release, download the two files and its
 `LICENSE`, update the release in `internal/cmd/gencldr/main.go`, hashes in

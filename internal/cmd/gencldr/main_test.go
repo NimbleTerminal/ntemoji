@@ -3,8 +3,13 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"go/ast"
+	"go/format"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -19,7 +24,7 @@ func TestGeneratedMetadataIsCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(got, want) {
+	if !bytes.Equal(normalizeGeneratedSource(t, got), normalizeGeneratedSource(t, want)) {
 		t.Fatal("metadata is stale; run go generate ./...")
 	}
 }
@@ -76,7 +81,7 @@ func TestGeneratedTranslationsAreCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(got, want) {
+	if !bytes.Equal(normalizeGeneratedSource(t, got), normalizeGeneratedSource(t, want)) {
 		t.Fatal("translations stale; run task generate-cldr")
 	}
 }
@@ -104,7 +109,7 @@ func TestGeneratedEmojiSequencesAreCurrent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(got, want) {
+	if !bytes.Equal(normalizeGeneratedSource(t, got), normalizeGeneratedSource(t, want)) {
 		t.Fatal("emoji sequences stale; run task generate-cldr")
 	}
 }
@@ -119,6 +124,61 @@ func TestLocaleManifestRejectsUnsupportedTags(t *testing.T) {
 		_, err := loadLocales(dir)
 		if err == nil || !strings.Contains(err.Error(), "invalid or duplicate locale source") {
 			t.Fatalf("locale %q: %v", locale, err)
+		}
+	}
+}
+
+// Go releases can disagree about which Unicode characters are printable in
+// quoted strings. Compare source with ASCII string literals and formatting
+// produced by the same toolchain, preserving declarations, data, and comments.
+func normalizeGeneratedSource(t *testing.T, source []byte) []byte {
+	t.Helper()
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "generated.go", source, parser.ParseComments)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ast.Inspect(file, func(node ast.Node) bool {
+		literal, ok := node.(*ast.BasicLit)
+		if !ok || literal.Kind != token.STRING {
+			return true
+		}
+		value, err := strconv.Unquote(literal.Value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		literal.Value = strconv.QuoteToASCII(value)
+		return true
+	})
+	var out bytes.Buffer
+	if err := format.Node(&out, fset, file); err != nil {
+		t.Fatal(err)
+	}
+	return out.Bytes()
+}
+
+func TestNormalizeGeneratedSource(t *testing.T) {
+	source := []byte("// Generated data.\npackage example\nvar names = map[string][]string{\n\"🫯\": {\"fight cloud\", \"é\"},\n}\n")
+	escaped := []byte(`// Generated data.
+package example
+var names = map[string][]string{
+"\U0001faef": {"fight cloud", "\u00e9"},
+}
+`)
+	want := normalizeGeneratedSource(t, source)
+	if !bytes.Equal(want, normalizeGeneratedSource(t, escaped)) {
+		t.Fatal("equivalent Unicode string spellings differ")
+	}
+	for _, change := range []struct{ old, new string }{
+		{"fight cloud", "wrong name"},
+		{"🫯", "☁"},
+		{"names", "renamed"},
+		{"Generated data.", "Changed provenance."},
+		{`, "é"`, ""},
+	} {
+		changed := strings.Replace(string(source), change.old, change.new, 1)
+		if bytes.Equal(want, normalizeGeneratedSource(t, []byte(changed))) {
+			t.Errorf("missed change from %q to %q", change.old, change.new)
 		}
 	}
 }
