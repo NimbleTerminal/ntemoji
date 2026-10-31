@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## `v0.2.0` (2026-10-30)
+
+This release adds multilingual emoji conversion, the `demoji` and `remoji` CLI
+tools, browser conversion demos, and picker accessibility and layout improvements.
+
+Migration: use the module path `nimbleterminal.dev/ntemoji` and replace
+`EmojiTags[emoji]` with `Tags(emoji)`. Go 1.26.8 or newer is required. Repository
+examples now run from their own module: `go -C examples run ./simple`.
+
  * Make generated-data freshness checks insensitive to equivalent Unicode string quoting across Go versions, and test Go 1.26.8 and 1.27 in CI.
 
  * Split demos and Booba tooling into a nested examples module and update Go dependencies and the browser Bubble Tea fork.
