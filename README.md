@@ -462,7 +462,12 @@ text to stdout. Diagnostics go to stderr. Options can precede or follow the file
 starts with a dash.
 `--locale` defaults to English. `--open`/`--close` default to empty for Demoji and
 colons for Remoji. Use `bin/remoji --open "" --close ""` for greedy plain-name
-conversion. `--help` lists options. `--version` prints the version.
+conversion. Combined opening and closing delimiters are limited to 128 UTF-8 bytes.
+Use `--terminal-safe` when displaying untrusted text: controls and Unicode bidi
+controls become visible `\uXXXX` text, invalid UTF-8 becomes U+FFFD, and newlines,
+tabs, and emoji sequences are preserved. Raw output remains the default for pipelines.
+Diagnostics always escape terminal and bidi controls.
+`--help` lists options. `--version` prints the version.
 Exit codes are 0 for success/help, 2 for invalid usage, and 1 for I/O/conversion
 errors. Streams may contain partial output on error. Neither tool adds a newline.
 Run without installing via `go run ./cmd/demoji` or `go run ./cmd/remoji`.
@@ -486,3 +491,19 @@ The picker and swatch examples continue to use their Bubble Tea terminal UI.
 
 Build with `task build-wasm-site`, or preview with `task serve-wasm-site`.
 The build produces `demos/convert.wasm` alongside the picker and swatch modules.
+
+## Security boundaries
+
+Demoji and Remoji perform text substitution, not sanitization. Unknown input,
+including terminal escapes, bidi controls, and invalid UTF-8, passes through the
+raw conversion APIs. Do not print that output directly to a terminal when the
+source is untrusted. Use `TerminalSafe`, `NewTerminalSafeWriter` (calling `Close`
+to flush trailing bytes), or the CLI's `--terminal-safe` option at the display
+boundary. These filters are not HTML escaping or shell quoting.
+
+Widgets remove ANSI sequences, remaining controls, and bidi controls from content
+before styling it. Accessibility snapshots are similarly cleaned. Selection values
+and metadata lookup fallbacks remain raw application data; sanitize them before
+printing them elsewhere. Custom styles, borders, and views passed to overlay
+helpers remain trusted terminal markup. Search input retains at most 4,096 UTF-8
+bytes. See [SECURITY.md](SECURITY.md) for the threat model and resource limits.

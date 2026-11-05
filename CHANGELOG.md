@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Harden terminal display with streaming control escaping, a `--terminal-safe` CLI option, safe diagnostics and widget content, bounded delimiters/search input, and security regression/fuzz coverage.
+
  * Migrate example imports and the asset tool to `nimbleterminal.dev/booba` v0.12.1, and update Go dependencies.
 
 ## `v0.2.0` (2026-10-30)

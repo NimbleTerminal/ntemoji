@@ -18,9 +18,17 @@ type AccessibilityState struct {
 
 // AccessibilityState returns the full names even when the view truncates them.
 // Hosts can compare snapshots after Update and announce meaningful changes.
-// This API does not itself send screen-reader announcements.
+// Content is sanitized for single-line display; raw selection values remain
+// available through Value. This API does not send screen-reader announcements.
 func (m Model) AccessibilityState() AccessibilityState {
-	return m.accessibilityState(m.filteredEmojis())
+	s := m.accessibilityState(m.filteredEmojis())
+	s.FocusedEmoji = singleLine(s.FocusedEmoji)
+	s.FocusedName = singleLine(s.FocusedName)
+	s.Category = singleLine(s.Category)
+	s.Query = singleLine(s.Query)
+	s.SelectedEmoji = singleLine(s.SelectedEmoji)
+	s.SelectedName = singleLine(s.SelectedName)
+	return s
 }
 
 func (m Model) accessibilityState(emojis []string) AccessibilityState {
@@ -83,8 +91,8 @@ type SwatchAccessibilityState struct {
 
 // AccessibilityState includes the label supplied to NewSwatchPicker.
 func (s *SwatchPicker) AccessibilityState() SwatchAccessibilityState {
-	state := SwatchAccessibilityState{Label: s.label, Emoji: s.emoji,
-		Name: EmojiNameFor(s.emoji, s.locale), Focused: s.focused, Expanded: s.open}
+	state := SwatchAccessibilityState{Label: singleLine(s.label), Emoji: singleLine(s.emoji),
+		Name: singleLine(EmojiNameFor(s.emoji, s.locale)), Focused: s.focused, Expanded: s.open}
 	if s.open {
 		state.Picker = s.picker.AccessibilityState()
 	}

@@ -18,7 +18,7 @@ func (m Model) resultCols() int {
 }
 
 func fitLabel(text string, width int) string {
-	text = ansi.Truncate(text, width, "…")
+	text = ansi.Truncate(singleLine(text), width, "…")
 	return text + strings.Repeat(" ", max(0, width-lipgloss.Width(text)))
 }
 
@@ -34,7 +34,7 @@ func (m Model) textCategories(width int) string {
 				prefix = "> "
 			}
 		}
-		label := ansi.Truncate(prefix+p.Name+" ", width, "…")
+		label := ansi.Truncate(prefix+singleLine(p.Name)+" ", width, "…")
 		w := lipgloss.Width(label)
 		if used > 0 && used+w > width {
 			out.WriteString(strings.Repeat(" ", width-used) + "\n")

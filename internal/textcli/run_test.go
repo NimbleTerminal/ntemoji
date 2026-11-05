@@ -105,3 +105,47 @@ func TestVersionFlag(t *testing.T) {
 		}
 	}
 }
+
+func TestTerminalSafeOutput(t *testing.T) {
+	for _, reverse := range []bool{false, true} {
+		for _, safe := range []bool{false, true} {
+			input := "\x1b]52;c;payload\a\u202e\xff\n🧑🏽‍🚀"
+			if reverse {
+				input += ":rocket:"
+			} else {
+				input += "🚀"
+			}
+			args := []string{}
+			if safe {
+				args = append(args, "--terminal-safe")
+			}
+			var out, diagnostics bytes.Buffer
+			if code := Run(reverse, args, strings.NewReader(input), &out, &diagnostics); code != 0 {
+				t.Fatal(code, diagnostics.String())
+			}
+			if safe {
+				if strings.ContainsAny(out.String(), "\x1b\a\u202e") || !strings.Contains(out.String(), "\\u001b]52;") {
+					t.Fatalf("unsafe %q", out.String())
+				}
+			} else if !strings.HasPrefix(out.String(), "\x1b]52;c;payload\a\u202e\xff\n") {
+				t.Fatalf("raw output changed %q", out.String())
+			}
+		}
+	}
+	var diagnostics bytes.Buffer
+	if code := Run(false, []string{"--terminal-safe"}, strings.NewReader("🚀"), brokenWriter{}, &diagnostics); code != 1 {
+		t.Fatal(code)
+	}
+}
+
+func TestSafeDiagnosticsAndDelimiterLimit(t *testing.T) {
+	for _, args := range [][]string{{"--bad-\x1b[2J\u202e"}, {"missing-\x1b[2J\u202e"}, {"--open", strings.Repeat("[", 129)}} {
+		var out, diagnostics bytes.Buffer
+		if code := Run(false, args, strings.NewReader("🚀"), &out, &diagnostics); code == 0 {
+			t.Fatal("expected failure")
+		}
+		if strings.ContainsAny(diagnostics.String(), "\x1b\u202e") || out.Len() != 0 {
+			t.Fatalf("unsafe diagnostics %q output %q", diagnostics.String(), out.String())
+		}
+	}
+}

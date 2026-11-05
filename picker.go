@@ -598,7 +598,7 @@ func (m Model) view(emojis []string) tea.View {
 	}
 
 	var sections []string
-	sections = append(sections, toCols(headerStr), toCols(m.Theme.HelpStyle.Render(preview)))
+	sections = append(sections, toCols(headerStr), toCols(m.Theme.HelpStyle.Render(singleLine(preview))))
 
 	cellStyle := lipgloss.NewStyle().Width(4).MaxWidth(4).Align(lipgloss.Center)
 
@@ -609,9 +609,9 @@ func (m Model) view(emojis []string) tea.View {
 			if i > 0 && i%cols == 0 {
 				presetLine += "\n"
 			}
-			cell := cellStyle.Render(p)
+			cell := cellStyle.Render(singleLine(p))
 			if m.listMode && m.Focus == FocusPresets && i == m.PresetCursor {
-				cell = cellStyle.Render(">" + p)
+				cell = cellStyle.Render(">" + singleLine(p))
 			}
 			if m.Focus == FocusPresets && i == m.PresetCursor {
 				presetLine += m.Theme.SelectedPresetStyle.Render(cell)
@@ -658,7 +658,7 @@ func (m Model) view(emojis []string) tea.View {
 			if i > 0 && i%cols == 0 {
 				catLine += "\n"
 			}
-			tabText := cellStyle.Render(p.Icon)
+			tabText := cellStyle.Render(singleLine(p.Icon))
 			var style lipgloss.Style
 			if i == m.ActiveTab {
 				style = m.Theme.ActiveTabStyle
@@ -698,7 +698,7 @@ func (m Model) view(emojis []string) tea.View {
 			for c := 0; c < cols; c++ {
 				idx := rowIdx*cols + c
 				if idx < len(emojis) {
-					emojiCell := cellStyle.Render(emojis[idx])
+					emojiCell := cellStyle.Render(singleLine(emojis[idx]))
 					isSelected := c == m.GridCursorX && rowIdx == m.GridCursorY
 					if isSelected && m.Focus == FocusGrid {
 						line += m.Theme.SelectedCellStyle.Render(emojiCell)

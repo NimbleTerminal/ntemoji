@@ -11,6 +11,20 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+// MaxSearchBytes bounds the UTF-8 bytes retained by TextInput. Excess input is
+// truncated at a rune boundary after control sanitization.
+const MaxSearchBytes = 4096
+
+func searchPrefix(s string, budget int) string {
+	if len(s) <= budget {
+		return s
+	}
+	for budget > 0 && !utf8.RuneStart(s[budget]) {
+		budget--
+	}
+	return s[:budget]
+}
+
 // TextInput is a single-line input with terminal-cell width limits.
 // It intentionally avoids bubbles/textinput and its system clipboard dependency:
 // paste arrives through Bubble Tea bracketed-paste events instead.
@@ -51,9 +65,10 @@ func (t *TextInput) Focused() bool { return t.focused }
 // Value returns the complete text, including text outside the visible viewport.
 func (t *TextInput) Value() string { return string(t.value) }
 
-// SetValue replaces the input, normalizes it to one line, and moves to its end.
+// SetValue replaces the input, sanitizes it to one line, truncates to
+// MaxSearchBytes, and moves to its end.
 func (t *TextInput) SetValue(s string) {
-	t.value = []rune(singleLine(s))
+	t.value = []rune(searchPrefix(singleLine(s), MaxSearchBytes))
 	t.cursor = len(t.value)
 }
 
@@ -64,7 +79,7 @@ func singleLine(s string) string {
 		case '\n', '\r', '\t', '\u2028', '\u2029':
 			return ' '
 		}
-		if unicode.IsControl(r) {
+		if unicode.IsControl(r) || bidiControl(r) {
 			return -1
 		}
 		return r
@@ -105,7 +120,7 @@ func (t TextInput) next() int {
 }
 
 func (t *TextInput) insert(s string) {
-	runes := []rune(singleLine(s))
+	runes := []rune(searchPrefix(singleLine(s), MaxSearchBytes-len(string(t.value))))
 	value := make([]rune, 0, len(t.value)+len(runes))
 	value = append(value, t.value[:t.cursor]...)
 	value = append(value, runes...)
@@ -174,7 +189,7 @@ func (t TextInput) View() string {
 		// Give the cursor grapheme priority over the prompt in narrow inputs.
 		promptWidth = max(0, t.width-width)
 	}
-	prompt := ansi.Truncate(t.PromptStyle.Render(t.Prompt), promptWidth, "")
+	prompt := ansi.Truncate(t.PromptStyle.Render(singleLine(t.Prompt)), promptWidth, "")
 	available := t.width - lipgloss.Width(prompt)
 	if available <= 0 {
 		return prompt

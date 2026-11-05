@@ -73,7 +73,7 @@ func (s *SwatchPicker) SwatchView() string {
 	if s.focused {
 		symbol = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true).Render(symbol)
 	}
-	return s.emoji + " " + symbol
+	return singleLine(s.emoji) + " " + symbol
 }
 
 // SetFocused toggles highlight focus status.

@@ -18,10 +18,26 @@ type TextOption func(*textConfig)
 
 type textConfig struct{ before, after, locale string }
 
+// MaxDelimiterBytes is the maximum combined UTF-8 byte length of opening and
+// closing delimiters. It bounds Remoji index construction and output expansion.
+const MaxDelimiterBytes = 128
+
+// ErrDelimiterTooLong means the combined delimiters exceed MaxDelimiterBytes.
+var ErrDelimiterTooLong = errors.New("ntemoji: combined delimiters exceed 128 bytes")
+
+func (c textConfig) validate() error {
+	if len(c.before) > MaxDelimiterBytes || len(c.after) > MaxDelimiterBytes-len(c.before) {
+		return ErrDelimiterTooLong
+	}
+	return nil
+}
+
 // WithDelimiters wraps descriptive names in Demoji and identifies names in
 // Remoji. Demoji defaults to no delimiters; Remoji defaults to colons.
 // Empty delimiters enable greedy plain-name matching in Remoji. An omitted
 // delimiter is replaced by a Unicode word-boundary check. No escaping is performed.
+// Combined delimiter length must not exceed MaxDelimiterBytes; conversions
+// reject larger delimiters before reading input or writing output.
 func WithDelimiters(before, after string) TextOption {
 	return func(c *textConfig) { c.before, c.after = before, after }
 }
@@ -45,13 +61,16 @@ var ErrEmptyDelimiter = errors.New("ntemoji: Remoji requires nonempty opening an
 // scanner error. Output is flushed at completed control graphemes, including
 // line feeds. Neither stream is closed. Errors may leave partial output.
 func Demoji(dst io.Writer, src io.Reader, opts ...TextOption) (err error) {
-	output := bufio.NewWriter(dst)
-	defer func() { err = errors.Join(err, output.Flush()) }()
-	dst = output
 	cfg := textConfig{}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
+	if err := cfg.validate(); err != nil {
+		return err
+	}
+	output := bufio.NewWriter(dst)
+	defer func() { err = errors.Join(err, output.Flush()) }()
+	dst = output
 	scanner := bufio.NewScanner(src)
 	scanner.Buffer(make([]byte, 4096), 1024*1024)
 	scanner.Split(splitGrapheme)
@@ -145,6 +164,9 @@ func Remoji(dst io.Writer, src io.Reader, opts ...TextOption) (err error) {
 	cfg := textConfig{before: ":", after: ":"}
 	for _, opt := range opts {
 		opt(&cfg)
+	}
+	if err := cfg.validate(); err != nil {
+		return err
 	}
 	output := bufio.NewWriter(dst)
 	defer func() { err = errors.Join(err, output.Flush()) }()

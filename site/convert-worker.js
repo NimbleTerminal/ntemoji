@@ -16,6 +16,15 @@ self.onmessage = async ({ data }) => {
   try {
     const api = await ready;
     if (typeof data.text !== 'string' || data.text.length > 100000) throw new Error('Input is limited to 100,000 characters.');
+    for (const key of ['mode', 'locale', 'open', 'close']) {
+      if (typeof data[key] !== 'string') throw new Error('Invalid conversion options.');
+    }
+    if (data.locale.length > 128) throw new Error('Locale is limited to 128 characters.');
+    const encoder = new TextEncoder();
+    if (data.open.length + data.close.length > 128 ||
+        encoder.encode(data.open).length + encoder.encode(data.close).length > 128) {
+      throw new Error('Combined delimiters are limited to 128 UTF-8 bytes.');
+    }
     postMessage({ id: data.id, ...api.convert(data) });
   } catch (error) {
     postMessage({ id: data.id, error: error.message });

@@ -19,6 +19,10 @@ var version = "dev"
 
 // Run returns a process exit code: 0 for success, 2 for usage, 1 for I/O errors.
 func Run(reverse bool, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	// Diagnostics can include attacker-controlled filenames and flag values.
+	safeErrors := ntemoji.NewTerminalSafeWriter(stderr)
+	defer safeErrors.Close()
+	stderr = safeErrors
 	name := "demoji"
 	before, after := "", ""
 	if reverse {
@@ -29,6 +33,7 @@ func Run(reverse bool, args []string, stdin io.Reader, stdout, stderr io.Writer)
 	locale := flags.String("locale", "en", "CLDR metadata language; unsupported locales fall back to English")
 	flags.StringVar(&before, "open", before, "opening name delimiter")
 	flags.StringVar(&after, "close", after, "closing name delimiter")
+	terminalSafe := flags.Bool("terminal-safe", false, "escape terminal and bidi controls in output")
 	help := flags.BoolP("help", "h", false, "show usage and exit")
 	list := flags.Bool("list-locales", false, "list bundled language codes and exit")
 	showVersion := flags.BoolP("version", "V", false, "print the version and exit")
@@ -74,11 +79,19 @@ func Run(reverse bool, args []string, stdin io.Reader, stdout, stderr io.Writer)
 		input = file
 	}
 	opts := []ntemoji.TextOption{ntemoji.WithTextLocale(*locale), ntemoji.WithDelimiters(before, after)}
+	var safeOutput io.WriteCloser
+	if *terminalSafe {
+		safeOutput = ntemoji.NewTerminalSafeWriter(stdout)
+		stdout = safeOutput
+	}
 	var err error
 	if reverse {
 		err = ntemoji.Remoji(stdout, input, opts...)
 	} else {
 		err = ntemoji.Demoji(stdout, input, opts...)
+	}
+	if safeOutput != nil {
+		err = errors.Join(err, safeOutput.Close())
 	}
 	if err != nil {
 		fmt.Fprintf(stderr, "%s: %v\n", name, err)
