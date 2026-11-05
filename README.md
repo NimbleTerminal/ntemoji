@@ -255,9 +255,8 @@ sh scripts/build-wasm-site.sh
 Applications importing `ntemoji` that target WASM must configure the replacement
 from `wasm.work` in their own module or workspace; Go does not inherit it.
 
-The `booba-assets` tool still uses its upstream `github.com/NimbleMarkets/go-booba`
-module path. The examples use `examples/internal/demorun` to select the native or WASM
-launcher and publish their current controls through Booba terminal actions. The tracked page source lives in `site/`.
+The `booba-assets` tool and example imports use `nimbleterminal.dev/booba`.
+The examples use `examples/internal/demorun` to select the native or WASM launcher and publish their current controls through Booba terminal actions. The tracked page source lives in `site/`.
 The shared build script compiles both examples, stages the runtime, and copies the page into `web/`.
 Generated browser assets are ignored by Git; edit `site/`, not `web/`.
 

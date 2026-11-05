@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Migrate example imports and the asset tool to `nimbleterminal.dev/booba` v0.12.1, and update Go dependencies.
+
 ## `v0.2.0` (2026-10-30)
 
 This release adds multilingual emoji conversion, the `demoji` and `remoji` CLI

@@ -1,5 +1,5 @@
 // Opt-in workspace for browser builds; native builds use upstream Bubble Tea.
-// Keep the fork aligned with the version used by go-booba.
+// Keep the fork aligned with the version used by nimbleterminal.dev/booba.
 go 1.26.8
 
 use (

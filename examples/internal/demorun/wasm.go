@@ -4,7 +4,7 @@ package demorun
 
 import (
 	tea "charm.land/bubbletea/v2"
-	"github.com/NimbleMarkets/go-booba/wasm"
+	"nimbleterminal.dev/booba/wasm"
 )
 
 func Run(model tea.Model) (tea.Model, error) {
