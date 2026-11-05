@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+ * Add an optional ntfonts Noto Color Emoji comparison as a dedicated browser demo, with localized sequence specimens, Unicode inspection, lazy font loading, and automatic CBDT/sbix selection for Safari using ntfonts v0.3.1.
+
  * Harden terminal display with streaming control escaping, a `--terminal-safe` CLI option, safe diagnostics and widget content, bounded delimiters/search input, and security regression/fuzz coverage.
 
  * Migrate example imports and the asset tool to `nimbleterminal.dev/booba` v0.12.1, and update Go dependencies.

@@ -231,6 +231,24 @@ examples, keyboard help, source links, a restart control, and Booba terminal
 action buttons that change when a picker opens or closes. Switching examples
 starts a fresh session.
 
+Choose **Emoji fonts** in the demo navigation (`?demo=fonts`) to compare system
+emoji with the optional Noto Color Emoji pack from `ntfonts`. It includes full skin-tone, family, flag, profession,
+variation-selector, and keycap sequences, localized names, and Unicode code
+points. The font comparison has its own page, separate from the terminal and
+conversion demos.
+Noto loads only when selected: the browser chooses CBDT (about 10.7 MB) or its
+Safari-compatible sbix companion (about 10.8 MB), both supplied by ntfonts v0.3.1.
+Format selection uses feature detection, with a second candidate tried if loading
+fails. Browsers without either format keep system emoji; missing glyphs may also
+use platform fallback. The eight sequence specimens were visually checked in
+desktop Safari (sbix) and Chrome (CBDT); iOS and Firefox have not been checked.
+
+The build stages font bytes and the OFL license as separate static assets using
+`examples/cmd/demo-assets`; the font is not embedded in the conversion WASM or
+added to the core module. Run `task build-wasm-site` to refresh all demo assets.
+`task test-font-demo` checks browser format selection and load fallback with
+Node.js 22 or newer; it needs no npm dependencies.
+
 To build and serve it locally:
 
 ```sh

@@ -84,3 +84,26 @@ select:disabled { opacity: .5; }
 textarea:focus-visible, input:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
 @media (max-width: 1100px) { .text-panels { grid-template-columns: 1fr; } .text-panel textarea { min-height: 200px; } }
 @media (max-width: 420px) { #converter { padding: 14px; } #custom-delimiters { grid-template-columns: auto minmax(36px, 1fr); } }
+
+.font-lab { padding: 24px; background: #191720; }
+.font-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+.font-heading .eyebrow { margin-bottom: 6px; }
+.font-heading h2 { font-size: 22px; }
+.font-settings { display: flex; flex-wrap: wrap; gap: 14px; }
+.font-settings label { display: grid; gap: 6px; font-size: 12px; }
+.font-settings select { font-size: 13px; max-width: 100%; }
+.font-intro { color: var(--muted); font-size: 13px; margin: 18px 0; }
+.emoji-specimens { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.emoji-specimens button { display: grid; justify-items: center; align-content: start; gap: 10px; padding: 16px 8px; min-width: 0; background: #101017; }
+.emoji-specimens button[aria-pressed="true"] { border-color: var(--sage); background: #17201c; }
+.specimen-emoji, .specimen-glyph { font-family: var(--demo-emoji-font, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif); font-weight: 400; font-style: normal; }
+.specimen-emoji { font-size: 32px; line-height: 1.5; }
+.specimen-caption { font-size: 11px; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+.specimen-details { display: flex; align-items: center; gap: 22px; margin-top: 18px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; min-height: 108px; }
+.specimen-glyph { font-size: 48px; line-height: 1.4; }
+.specimen-details > div { min-width: 0; }
+.specimen-details h3 { font-size: 16px; font-weight: 500; margin: 0 0 6px; }
+.specimen-details code { font-size: 11px; color: var(--sage); overflow-wrap: anywhere; }
+.font-note { color: var(--muted); font-size: 12px; margin: 14px 0 0; }
+.font-note a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 420px) { .font-lab { padding: 16px; } .font-settings, .font-settings label { width: 100%; } .emoji-specimens { grid-template-columns: repeat(2, minmax(0, 1fr)); } .specimen-details { gap: 14px; padding: 12px; } }

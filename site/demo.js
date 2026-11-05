@@ -1,4 +1,8 @@
 const demos = {
+  fonts: {
+    title: 'Emoji fonts',
+    description: 'Compare your system emoji with Noto Color Emoji from ntfonts. Choose a complete sequence, inspect its code points, and read its name in six languages.',
+  },
   demoji: {
     title: 'Demoji · emoji to words',
     description: 'Type or paste emoji text and see descriptive names appear live. Choose a language and plain names, colons, brackets, or your own delimiters.',
@@ -37,7 +41,9 @@ function fail(error) {
 document.title = `${demo.title} — ntemoji`;
 document.querySelector('#demo-title').textContent = demo.title;
 document.querySelector('#description').textContent = demo.description;
-document.querySelector('#source').href = `https://github.com/NimbleTerminal/ntemoji/tree/main/${conversion ? "cmd/emojiwasm" : `examples/${selected}`}`;
+document.querySelector('#source').href = selected === 'fonts'
+  ? 'https://github.com/NimbleTerminal/ntemoji/blob/main/site/font-demo.js'
+  : `https://github.com/NimbleTerminal/ntemoji/tree/main/${conversion ? "cmd/emojiwasm" : `examples/${selected}`}`;
 document.querySelectorAll('[data-demo]').forEach(link => {
   if (link.dataset.demo === selected) link.setAttribute('aria-current', 'page');
   else link.removeAttribute('aria-current');
@@ -47,6 +53,20 @@ document.querySelector('#restart').addEventListener('click', () => location.relo
 window.addEventListener('pagehide', () => terminal?.dispose());
 
 async function main() {
+  if (selected === 'fonts') {
+    document.querySelector('.intro h1').innerHTML = 'See emoji in a different font<span>.</span>';
+    document.querySelector('.intro > p:last-child').textContent = 'The same Unicode sequences, rendered by your system or the optional ntfonts emoji pack.';
+    document.querySelector('#font-lab').hidden = false;
+    document.querySelector('#controls').hidden = true;
+    document.querySelector('.terminal-scroll').hidden = true;
+    document.querySelector('#keyboard-help').hidden = true;
+    document.querySelector('.instructions .hint').textContent = 'Select Noto to load the optional font. Switch back to System emoji to compare appearances. Browser fallback may apply.';
+    document.querySelector('#runtime-label').textContent = 'ntfonts · Browser fonts';
+    document.querySelector('#restart').textContent = 'Reset demo';
+    const { setupFontDemo } = await import('./font-demo.js');
+    setupFontDemo();
+    return;
+  }
   if (conversion) {
     document.querySelector('.intro h1').innerHTML = selected === 'demoji'
       ? 'Emoji to words. In your language<span>.</span>'

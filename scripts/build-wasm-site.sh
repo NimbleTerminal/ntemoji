@@ -9,7 +9,8 @@ for demo in simple swatch; do
 done
 GOWORK="$PWD/wasm.work" GOOS=js GOARCH=wasm go build -mod=readonly -o web/demos/convert.wasm ./cmd/emojiwasm
 go -C examples tool booba-assets ../web/
+go -C examples run ./cmd/demo-assets ../web/
 # Always install the tracked showcase over the generated starter page.
-cp site/index.html site/style.css site/demo.js site/converter.js site/convert-worker.js web/
+cp site/index.html site/style.css site/demo.js site/converter.js site/convert-worker.js site/font-demo.js web/
 mkdir -p web/third_party/unicode
 cp third_party/unicode/LICENSE.txt third_party/unicode/NOTICE.txt web/third_party/unicode/

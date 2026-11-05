@@ -44,3 +44,7 @@ golang.org/x/sys v0.49.0 h1:XbzkgYJHdqh/8m2Uu0W/dQv8nktxx4BFHp1M0gROTXA=
 golang.org/x/sys v0.49.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
 nimbleterminal.dev/booba v0.12.1 h1:pW8QRfdRTm/IeFispA7FnuoZRTE6KKLl7RETQWuyU0k=
 nimbleterminal.dev/booba v0.12.1/go.mod h1:XI2MZtkump+cvEhyr/4v1fE01f7HA/PNTYXjBz9NjVA=
+nimbleterminal.dev/ntfonts/packs/emoji v0.3.1 h1:ANeOb+z+lM6IOfiuDpkSWz7yZuas2KV36SA+bp7hJNc=
+nimbleterminal.dev/ntfonts/packs/emoji v0.3.1/go.mod h1:Dk/wfMK/s9dVPi0UKjudGiglpgYMVISdxhl7P8p/nOk=
+nimbleterminal.dev/ntfonts/packs/emoji/sbix v0.3.1 h1:FbrnBfD10WTASBcFQ+gcZAp8/ddk1Lgj/ZteCP1zZq0=
+nimbleterminal.dev/ntfonts/packs/emoji/sbix v0.3.1/go.mod h1:yK77+rsJvFg+rrfql1M6O7lDQ7froPIpVyH9gkHrfS0=

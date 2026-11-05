@@ -9,6 +9,8 @@ require (
 	github.com/lrstanley/bubblezone/v2 v2.0.0
 	nimbleterminal.dev/booba v0.12.1
 	nimbleterminal.dev/ntemoji v0.0.0
+	nimbleterminal.dev/ntfonts/packs/emoji v0.3.1
+	nimbleterminal.dev/ntfonts/packs/emoji/sbix v0.3.1
 )
 
 require (

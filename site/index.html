@@ -29,6 +29,7 @@
           <a href="?demo=swatch" data-demo="swatch" aria-current="page"><span class="demo-icon" aria-hidden="true">▦</span><span><strong>Swatch grid</strong><small>Four buttons, endless choices</small></span><span aria-hidden="true">↗</span></a>
           <a href="?demo=demoji" data-demo="demoji"><span class="demo-icon" aria-hidden="true">Aa</span><span><strong>Demoji</strong><small>Emoji to descriptive words</small></span><span aria-hidden="true">↗</span></a>
           <a href="?demo=remoji" data-demo="remoji"><span class="demo-icon" aria-hidden="true">☺</span><span><strong>Remoji</strong><small>Descriptive names to emoji</small></span><span aria-hidden="true">↗</span></a>
+          <a href="?demo=fonts" data-demo="fonts"><span class="demo-icon" aria-hidden="true">◉</span><span><strong>Emoji fonts</strong><small>System emoji vs. Noto Color Emoji</small></span><span aria-hidden="true">↗</span></a>
         </nav>
         <div class="instructions">
           <h2>Make it yours</h2>
@@ -63,6 +64,22 @@
             </div>
           </fieldset>
           <p class="converter-note">Names come from Unicode CLDR. Missing translations fall back to English. Unknown or ambiguous names stay unchanged in Remoji.</p>
+        </section>
+        <section id="font-lab" class="font-lab" hidden aria-labelledby="font-title">
+          <div class="font-heading">
+            <div><p class="eyebrow">THE SAME UNICODE, A DIFFERENT LOOK</p><h2 id="font-title">Try the emoji font pack</h2></div>
+            <div class="font-settings">
+              <label for="emoji-font">Emoji font<select id="emoji-font" disabled><option value="system">System emoji</option><option value="noto">Noto Color Emoji · ntfonts</option></select></label>
+              <label for="specimen-language">Names<select id="specimen-language" disabled></select></label>
+            </div>
+          </div>
+          <p class="font-intro">Compare complete emoji sequences, including skin tones, families, flags, and keycaps. Select a sample to inspect its name and Unicode code points.</p>
+          <div id="emoji-specimens" class="emoji-specimens" role="group" aria-label="Emoji sequence samples"></div>
+          <div class="specimen-details" aria-live="polite" aria-atomic="true">
+            <span id="specimen-glyph" class="specimen-glyph" aria-hidden="true"></span>
+            <div><h3 id="specimen-name">Loading sequence samples…</h3><code id="specimen-codepoints"></code></div>
+          </div>
+          <p class="font-note">The optional Noto font loads when selected: about 10.7 MB for CBDT or 10.8 MB for Safari’s sbix format. Your browser picks a supported format; missing glyphs may fall back to system fonts. <a href="fonts/OFL.txt">Font license</a> · <a href="fonts/NOTICE.txt">Font attribution</a> · <a href="https://pkg.go.dev/nimbleterminal.dev/ntfonts/packs/emoji">About the pack ↗</a></p>
         </section>
         <div id="controls" aria-label="Demo controls"></div>
         <div class="terminal-scroll"><div id="terminal" aria-label="Interactive emoji demo"></div></div>
