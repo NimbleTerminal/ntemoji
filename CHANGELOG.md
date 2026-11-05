@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## `v0.3.0` (2026-11-04)
+
+This release hardens terminal display of untrusted text and adds a dedicated
+emoji font comparison demo with Safari-compatible Noto rendering.
+
+Compatibility: Demoji and Remoji now reject opening and closing delimiters whose
+combined length exceeds 128 UTF-8 bytes, returning `ErrDelimiterTooLong` before
+reading input or writing output. TextInput retains at most 4,096 UTF-8 bytes,
+truncating excess input at a rune boundary after sanitization. Widget content and
+accessibility snapshots strip terminal and bidi controls; selection values remain
+raw application data.
+
+Raw conversion output remains the default for the library and CLI pipelines.
+Use `--terminal-safe`, `TerminalSafe`, or `NewTerminalSafeWriter` when displaying
+untrusted conversion output in a terminal. The streaming writer must be closed
+to flush trailing incomplete UTF-8; it does not close the underlying writer.
+
  * Add an optional ntfonts Noto Color Emoji comparison as a dedicated browser demo, with localized sequence specimens, Unicode inspection, lazy font loading, and automatic CBDT/sbix selection for Safari using ntfonts v0.3.1.
 
  * Harden terminal display with streaming control escaping, a `--terminal-safe` CLI option, safe diagnostics and widget content, bounded delimiters/search input, and security regression/fuzz coverage.
